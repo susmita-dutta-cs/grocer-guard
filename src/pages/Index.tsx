@@ -81,37 +81,6 @@ const Index = () => {
               <PromotionsSection />
             </section>
 
-            <div className="space-y-4">
-              <CategoryFilter selected={category} onSelect={setCategory} />
-              <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-display font-semibold text-base text-foreground">
-                    {category === "All" ? t("products.all") : t(categoryKeyMap[category] || category)}
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    {filtered.length} {t("products.items")}
-                  </span>
-                </div>
-
-                {filtered.length === 0 ? (
-                  <div className="text-center py-16 text-muted-foreground">
-                    <p className="text-lg">{t("products.noResults")}</p>
-                    <p className="text-sm mt-1">{t("products.tryDifferent")}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {filtered.slice(0, 50).map((product, i) => (
-                      <ProductCard key={product.id} product={product} index={i} onView={() => trackView(product.id)} />
-                    ))}
-                    {filtered.length > 50 && (
-                      <p className="text-center text-xs text-muted-foreground py-4">
-                        Showing 50 of {filtered.length} — use search to find more
-                      </p>
-                    )}
-                  </div>
-                )}
-              </section>
-            </div>
           </>
         )}
 

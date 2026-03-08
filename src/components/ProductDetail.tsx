@@ -16,7 +16,7 @@ const storeColorMap: Record<string, string> = {
 const storeHomeBrands: Record<string, string[]> = {
   aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
   albert_heijn: ["AH", "Albert Heijn", "AH Basic", "AH Excellent", "AH Terra"],
-  carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Simpl"],
+  carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Carrefour Extra", "Carrefour Original", "Simpl", "Carrefour Discount"],
   colruyt: ["Boni", "Everyday", "Spar"],
   jumbo: ["Jumbo"],
   lidl: ["Lidl", "Milbona", "Cien", "Silvercrest", "Parkside", "Perlenbacher", "Pilos"],

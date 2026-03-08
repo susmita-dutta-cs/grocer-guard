@@ -1,14 +1,58 @@
-import { Info, Globe } from "lucide-react";
+import { Info, Globe, ShieldCheck, LogIn, LogOut } from "lucide-react";
 import { useI18n, languageNames, languageFlags, type Language } from "@/hooks/useI18n";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const languages: Language[] = ["en", "nl", "fr"];
 
 const SettingsPanel = () => {
   const { t, language, setLanguage } = useI18n();
+  const { user, isAdmin, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-4">
       <h2 className="font-display font-bold text-xl text-foreground">{t("settings.title")}</h2>
+
+      {/* Account */}
+      <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+        {user ? (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-card-foreground">{user.email}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {isAdmin ? "Admin" : "User"}
+                </p>
+              </div>
+              <button
+                onClick={() => signOut()}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
+              </button>
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin")}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/15 text-primary text-sm font-medium border border-primary/20 hover:bg-primary/20 transition-colors active:scale-[0.98]"
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Admin — Edit Prices
+              </button>
+            )}
+          </>
+        ) : (
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity active:scale-[0.98]"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign In
+          </button>
+        )}
+      </div>
 
       {/* Language Selector */}
       <div className="bg-card rounded-2xl border border-border p-4 space-y-3">

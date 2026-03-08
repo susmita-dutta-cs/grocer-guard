@@ -50,11 +50,6 @@ function extractPrice(text: string): number | null {
 
   return Math.min(...prices);
 }
-
-  // Return the lowest reasonable price (most likely the actual product price)
-  return Math.min(...prices);
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

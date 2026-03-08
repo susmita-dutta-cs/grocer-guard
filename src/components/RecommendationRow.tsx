@@ -1,11 +1,12 @@
 import type { Recommendation } from "@/hooks/useRecommendations";
 import { stores, getLowestPrice } from "@/data/groceryData";
 import { Sparkles, TrendingDown, Tag, Heart } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
-const reasonConfig: Record<string, { icon: typeof Sparkles; title: string; accent: string }> = {
-  best_value: { icon: TrendingDown, title: "Best Value Picks", accent: "text-accent-foreground" },
-  deal_trending: { icon: Tag, title: "Hot Deals & Trending", accent: "text-secondary-foreground" },
-  personalized: { icon: Heart, title: "Picked For You", accent: "text-primary" },
+const reasonConfig: Record<string, { icon: typeof Sparkles; titleKey: string; accent: string }> = {
+  best_value: { icon: TrendingDown, titleKey: "rec.bestValue", accent: "text-accent-foreground" },
+  deal_trending: { icon: Tag, titleKey: "rec.deals", accent: "text-secondary-foreground" },
+  personalized: { icon: Heart, titleKey: "rec.personalized", accent: "text-primary" },
 };
 
 interface RecommendationRowProps {
@@ -14,6 +15,7 @@ interface RecommendationRowProps {
 }
 
 const RecommendationRow = ({ recommendations, reason }: RecommendationRowProps) => {
+  const { t } = useI18n();
   if (recommendations.length === 0) return null;
   const config = reasonConfig[reason];
   if (!config) return null;
@@ -23,7 +25,7 @@ const RecommendationRow = ({ recommendations, reason }: RecommendationRowProps) 
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Icon className={`h-5 w-5 ${config.accent}`} />
-        <h3 className="font-display font-semibold text-foreground">{config.title}</h3>
+        <h3 className="font-display font-semibold text-foreground">{t(config.titleKey)}</h3>
       </div>
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {recommendations.map((rec) => {

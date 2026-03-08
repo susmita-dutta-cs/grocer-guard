@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Home, Search, ShoppingCart, Settings } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 interface BottomNavProps {
   active: string;
@@ -7,24 +7,34 @@ interface BottomNavProps {
   basketCount?: number;
 }
 
-const tabs = [
-  { id: "home", icon: Home, label: "Home" },
-  { id: "search", icon: Search, label: "Search" },
-  { id: "basket", icon: ShoppingCart, label: "Basket" },
-  { id: "settings", icon: Settings, label: "Settings" },
-];
+const tabIcons = {
+  home: Home,
+  search: Search,
+  basket: ShoppingCart,
+  settings: Settings,
+};
+
+const tabKeys = {
+  home: "nav.home",
+  search: "nav.search",
+  basket: "nav.basket",
+  settings: "nav.settings",
+};
 
 const BottomNav = ({ active, onNavigate, basketCount = 0 }: BottomNavProps) => {
+  const { t } = useI18n();
+  const tabs = ["home", "search", "basket", "settings"] as const;
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
-        {tabs.map((tab) => {
-          const isActive = active === tab.id;
-          const Icon = tab.icon;
+        {tabs.map((id) => {
+          const isActive = active === id;
+          const Icon = tabIcons[id];
           return (
             <button
-              key={tab.id}
-              onClick={() => onNavigate(tab.id)}
+              key={id}
+              onClick={() => onNavigate(id)}
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-all ${
                 isActive ? "text-primary" : "text-muted-foreground"
               }`}
@@ -34,14 +44,14 @@ const BottomNav = ({ active, onNavigate, basketCount = 0 }: BottomNavProps) => {
               )}
               <div className="relative">
                 <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : ""}`} />
-                {tab.id === "basket" && basketCount > 0 && (
+                {id === "basket" && basketCount > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-primary text-primary-foreground text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
                     {basketCount}
                   </span>
                 )}
               </div>
               <span className={`text-[10px] font-medium ${isActive ? "text-primary" : ""}`}>
-                {tab.label}
+                {t(tabKeys[id])}
               </span>
             </button>
           );

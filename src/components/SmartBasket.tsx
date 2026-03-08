@@ -1,6 +1,7 @@
 import type { SmartBasketResult } from "@/hooks/useRecommendations";
 import { products } from "@/data/groceryData";
 import { ShoppingCart, Check, Plus } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 const storeColorMap: Record<string, string> = {
   aldi: "bg-store-1",
@@ -18,17 +19,16 @@ interface SmartBasketProps {
 }
 
 const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <ShoppingCart className="h-5 w-5 text-primary" />
-        <h2 className="font-display font-bold text-xl text-foreground">Smart Basket</h2>
+        <h2 className="font-display font-bold text-xl text-foreground">{t("basket.title")}</h2>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Tap items to add them, then see which store gives you the lowest total.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("basket.description")}</p>
 
-      {/* Product toggles */}
       <div className="flex flex-wrap gap-2">
         {products.map((p) => {
           const inBasket = basketIds.includes(p.id);
@@ -50,11 +50,10 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
         })}
       </div>
 
-      {/* Results */}
       {results.length > 0 && (
         <div className="space-y-2 pt-3 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground">
-            Total for {results[0].itemCount} items:
+            {t("basket.totalFor")} {results[0].itemCount} {t("basket.items")}:
           </p>
           {results.map((r, i) => {
             const isFirst = i === 0;
@@ -66,23 +65,15 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
                 }`}
               >
                 <div className={`h-3 w-3 rounded-full ${storeColorMap[r.storeId]}`} />
-                <span
-                  className={`flex-1 text-sm font-medium ${
-                    isFirst ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                >
+                <span className={`flex-1 text-sm font-medium ${isFirst ? "text-foreground" : "text-muted-foreground"}`}>
                   {r.storeName}
                 </span>
-                <span
-                  className={`text-sm font-display font-bold ${
-                    isFirst ? "text-primary" : "text-muted-foreground"
-                  }`}
-                >
+                <span className={`text-sm font-display font-bold ${isFirst ? "text-primary" : "text-muted-foreground"}`}>
                   €{r.totalCost.toFixed(2)}
                 </span>
                 {isFirst && r.savings > 0 && (
                   <span className="text-[9px] font-bold bg-primary/15 text-primary px-2 py-0.5 rounded-full">
-                    Save €{r.savings.toFixed(2)}
+                    {t("basket.save")} €{r.savings.toFixed(2)}
                   </span>
                 )}
               </div>

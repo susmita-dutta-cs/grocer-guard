@@ -1,5 +1,6 @@
 import { Product, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
 import { TrendingDown } from "lucide-react";
+import { useI18n } from "@/hooks/useI18n";
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +18,7 @@ const storeColorMap: Record<string, string> = {
 };
 
 const ProductCard = ({ product, index, onView }: ProductCardProps) => {
+  const { t } = useI18n();
   const lowest = getLowestPrice(product);
   const highest = getHighestPrice(product);
   const savings = getSavingsPercent(product);
@@ -28,7 +30,6 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
       className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:border-primary/30 transition-all animate-fade-in-up cursor-pointer active:scale-[0.98]"
       style={{ animationDelay: `${index * 40}ms` }}
     >
-      {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
@@ -49,7 +50,6 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
         )}
       </div>
 
-      {/* Price bars */}
       <div className="space-y-1.5">
         {product.prices
           .slice()
@@ -78,7 +78,7 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
                   >
                     €{pp.price.toFixed(2)}
                     {pp.onSale && (
-                      <span className="ml-1 text-primary font-normal text-[9px]">SALE</span>
+                      <span className="ml-1 text-primary font-normal text-[9px]">{t("product.sale")}</span>
                     )}
                   </span>
                 </div>
@@ -87,9 +87,8 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
           })}
       </div>
 
-      {/* Best deal footer */}
       <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-        <span className="text-[10px] text-muted-foreground">Best deal</span>
+        <span className="text-[10px] text-muted-foreground">{t("product.bestDeal")}</span>
         <span className="text-xs font-display font-bold text-primary">
           {lowestStore?.name} — €{lowest.price.toFixed(2)}
         </span>

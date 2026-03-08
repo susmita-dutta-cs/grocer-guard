@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Info, Globe, ShieldCheck, LogIn, LogOut, Link2, Save, Loader2 } from "lucide-react";
+import { useGroceryData } from "@/hooks/useGroceryData";
 import { useI18n, languageNames, languageFlags, type Language } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";

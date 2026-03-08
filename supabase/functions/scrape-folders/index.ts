@@ -567,6 +567,11 @@ Deno.serve(async (req) => {
               console.log(`Pages ${pageNumbers.join(",")}: extracted ${batchPromos.length} promos`);
 
               if (batchPromos.length > 0) {
+                // Delete old promos only on first successful batch
+                if (!deletedOld) {
+                  await supabase.from("weekly_promotions").delete().eq("store_id", sid);
+                  deletedOld = true;
+                }
                 // Match and save immediately
                 const matched = await matchProducts(supabase, batchPromos);
                 const inserts = matched.map((p: any) => ({

@@ -85,12 +85,14 @@ const Index = () => {
       });
     }
 
-    // 2. Also include home brand products from the same category
-    products.forEach((p) => {
-      if (p.id !== selectedProduct.id && p.category === selectedProduct.category && isHomeBrand(p.brand)) {
-        matchedIds.add(p.id);
-      }
-    });
+    // 2. Also include home brand products that match by keyword
+    if (primaryKeyword) {
+      products.forEach((p) => {
+        if (p.id !== selectedProduct.id && isHomeBrand(p.brand) && p.name.toLowerCase().includes(primaryKeyword)) {
+          matchedIds.add(p.id);
+        }
+      });
+    }
 
     return products.filter((p) => matchedIds.has(p.id));
   }, [selectedProduct, products]);

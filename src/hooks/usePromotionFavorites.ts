@@ -59,7 +59,9 @@ export function usePromotionFavorites() {
             next.delete(promotionId);
             return next;
           });
-          toast.error("Failed to add favorite");
+          toast.error("Failed to add to basket");
+        } else {
+          toast.success("Deal added to basket");
         }
       }
     },
@@ -71,5 +73,5 @@ export function usePromotionFavorites() {
     [favoriteIds]
   );
 
-  return { isFavorite, toggleFavorite };
+  return { favoriteIds, isFavorite, toggleFavorite, count: favoriteIds.size };
 }

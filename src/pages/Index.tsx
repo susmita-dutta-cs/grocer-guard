@@ -8,6 +8,7 @@ import ProductDetail from "@/components/ProductDetail";
 import StatsBar from "@/components/StatsBar";
 import RecommendationRow from "@/components/RecommendationRow";
 import SmartBasket from "@/components/SmartBasket";
+import SavedDealsBasket from "@/components/SavedDealsBasket";
 import PromotionsSection from "@/components/PromotionsSection";
 import BottomNav from "@/components/BottomNav";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -199,7 +200,10 @@ const Index = () => {
         )}
 
         {activeTab === "basket" && (
-          <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
+          <div className="space-y-6">
+            <SavedDealsBasket />
+            <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
+          </div>
         )}
 
         {activeTab === "settings" && <SettingsPanel />}

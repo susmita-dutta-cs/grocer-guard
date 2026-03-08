@@ -34,7 +34,7 @@ const LoginPage = () => {
         if (error) {
           setError(error.message);
         } else {
-          navigate("/");
+          window.location.href = "/";
         }
       }
     } catch (err: any) {

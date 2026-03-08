@@ -1,5 +1,5 @@
-import { products, getLowestPrice, getHighestPrice } from "@/data/groceryData";
 import { Euro, TrendingDown, ShoppingCart } from "lucide-react";
+import { products, getLowestPrice, getHighestPrice } from "@/data/groceryData";
 
 const StatsBar = () => {
   const totalSavings = products.reduce((sum, p) => {
@@ -11,7 +11,7 @@ const StatsBar = () => {
   const stats = [
     {
       icon: ShoppingCart,
-      label: "Products Tracked",
+      label: "Products",
       value: products.length.toString(),
     },
     {
@@ -21,25 +21,23 @@ const StatsBar = () => {
     },
     {
       icon: Euro,
-      label: "Total Potential Savings",
+      label: "Total Savings",
       value: `€${totalSavings.toFixed(2)}`,
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div className="grid grid-cols-3 gap-2">
       {stats.map((stat) => (
         <div
           key={stat.label}
-          className="bg-card rounded-xl border border-border p-4 flex items-center gap-3 shadow-sm"
+          className="bg-card rounded-2xl border border-border p-3 flex flex-col items-center gap-1.5"
         >
-          <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-            <stat.icon className="h-5 w-5 text-accent-foreground" />
+          <div className="h-8 w-8 rounded-xl bg-primary/15 flex items-center justify-center">
+            <stat.icon className="h-4 w-4 text-primary" />
           </div>
-          <div>
-            <p className="text-xl font-display font-bold text-card-foreground">{stat.value}</p>
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-          </div>
+          <p className="text-lg font-display font-bold text-card-foreground">{stat.value}</p>
+          <p className="text-[10px] text-muted-foreground">{stat.label}</p>
         </div>
       ))}
     </div>

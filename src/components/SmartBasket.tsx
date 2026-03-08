@@ -19,13 +19,13 @@ interface SmartBasketProps {
 
 const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
   return (
-    <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center gap-2">
         <ShoppingCart className="h-5 w-5 text-primary" />
-        <h3 className="font-display font-semibold text-card-foreground">Smart Basket</h3>
+        <h2 className="font-display font-bold text-xl text-foreground">Smart Basket</h2>
       </div>
       <p className="text-xs text-muted-foreground">
-        Add items to your basket to see which store gives you the lowest total.
+        Tap items to add them, then see which store gives you the lowest total.
       </p>
 
       {/* Product toggles */}
@@ -36,10 +36,10 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
             <button
               key={p.id}
               onClick={() => onToggle(p.id)}
-              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+              className={`flex items-center gap-1.5 text-[11px] px-3 py-2 rounded-xl border transition-all active:scale-95 ${
                 inBasket
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/40"
+                  ? "bg-primary/15 text-primary border-primary/30"
+                  : "bg-card text-muted-foreground border-border hover:border-primary/20"
               }`}
             >
               {inBasket ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
@@ -52,7 +52,7 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
 
       {/* Results */}
       {results.length > 0 && (
-        <div className="space-y-2 pt-2 border-t border-border">
+        <div className="space-y-2 pt-3 border-t border-border">
           <p className="text-xs font-medium text-muted-foreground">
             Total for {results[0].itemCount} items:
           </p>
@@ -61,27 +61,27 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
             return (
               <div
                 key={r.storeId}
-                className={`flex items-center gap-3 p-2.5 rounded-lg transition-all ${
-                  isFirst ? "bg-accent" : "bg-muted/50"
+                className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                  isFirst ? "bg-primary/10 border border-primary/20" : "bg-card border border-border"
                 }`}
               >
                 <div className={`h-3 w-3 rounded-full ${storeColorMap[r.storeId]}`} />
                 <span
                   className={`flex-1 text-sm font-medium ${
-                    isFirst ? "text-accent-foreground" : "text-muted-foreground"
+                    isFirst ? "text-foreground" : "text-muted-foreground"
                   }`}
                 >
                   {r.storeName}
                 </span>
                 <span
                   className={`text-sm font-display font-bold ${
-                    isFirst ? "text-accent-foreground" : "text-muted-foreground"
+                    isFirst ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
                   €{r.totalCost.toFixed(2)}
                 </span>
                 {isFirst && r.savings > 0 && (
-                  <span className="text-[10px] font-bold bg-savings text-savings-foreground px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] font-bold bg-primary/15 text-primary px-2 py-0.5 rounded-full">
                     Save €{r.savings.toFixed(2)}
                   </span>
                 )}

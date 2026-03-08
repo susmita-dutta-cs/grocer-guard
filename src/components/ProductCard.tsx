@@ -1,6 +1,7 @@
 import { Product, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
 import { TrendingDown } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
+import { useProductName } from "@/hooks/useProductName";
 
 interface ProductCardProps {
   product: Product;
@@ -19,7 +20,8 @@ const storeColorMap: Record<string, string> = {
 
 const ProductCard = ({ product, index, onView }: ProductCardProps) => {
   const { t } = useI18n();
-  const translatedName = t(`product.${product.name}`) !== `product.${product.name}` ? t(`product.${product.name}`) : product.name;
+  const { getProductName } = useProductName();
+  const translatedName = getProductName(product);
   const translatedUnit = t(`unit.${product.unit}`) !== `unit.${product.unit}` ? t(`unit.${product.unit}`) : product.unit;
   const lowest = getLowestPrice(product);
   const highest = getHighestPrice(product);
@@ -41,6 +43,9 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
             <h3 className="font-display font-semibold text-sm text-card-foreground leading-tight">
               {translatedName}
             </h3>
+            {product.brand && (
+              <p className="text-[10px] text-primary/70 font-medium mt-0.5">{product.brand}</p>
+            )}
             <p className="text-[10px] text-muted-foreground mt-0.5">{translatedUnit}</p>
           </div>
         </div>

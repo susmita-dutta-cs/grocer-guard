@@ -2,6 +2,7 @@ import type { SmartBasketResult } from "@/hooks/useRecommendations";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { ShoppingCart, Check, Plus } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
+import { useProductName } from "@/hooks/useProductName";
 
 const storeColorMap: Record<string, string> = {
   aldi: "bg-store-1",
@@ -21,6 +22,7 @@ interface SmartBasketProps {
 const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
   const { t } = useI18n();
   const { products } = useGroceryData();
+  const { getProductName } = useProductName();
 
   return (
     <div className="space-y-4">
@@ -45,7 +47,7 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
             >
               {inBasket ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
               <span>{p.image}</span>
-              {t(`product.${p.name}`) !== `product.${p.name}` ? t(`product.${p.name}`) : p.name}
+              {getProductName(p)}
             </button>
           );
         })}

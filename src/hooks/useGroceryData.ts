@@ -20,6 +20,9 @@ export function useGroceryData() {
         const products: Product[] = dbProducts.map((p) => ({
           id: p.id,
           name: p.name,
+          name_nl: (p as any).name_nl || undefined,
+          name_fr: (p as any).name_fr || undefined,
+          brand: (p as any).brand || undefined,
           category: p.category,
           unit: p.unit,
           image: p.image || "🛒",

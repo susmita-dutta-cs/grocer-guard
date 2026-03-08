@@ -13,6 +13,9 @@ export type ProductPrice = {
 export type Product = {
   id: string;
   name: string;
+  name_nl?: string;
+  name_fr?: string;
+  brand?: string;
   category: string;
   unit: string;
   image: string;

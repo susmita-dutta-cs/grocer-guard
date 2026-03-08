@@ -12,23 +12,28 @@ import SettingsPanel from "@/components/SettingsPanel";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useI18n, categoryKeyMap } from "@/hooks/useI18n";
+import { useProductName } from "@/hooks/useProductName";
 
 const Index = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [activeTab, setActiveTab] = useState("home");
   const { products } = useGroceryData();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const { getProductName } = useProductName();
   const { bestValue, deals, personalized, smartBasket, basketIds, toggleBasketItem, trackView } =
     useRecommendations();
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const localName = getProductName(p);
+      const matchesSearch = localName.toLowerCase().includes(search.toLowerCase()) ||
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.brand && p.brand.toLowerCase().includes(search.toLowerCase()));
       const matchesCategory = category === "All" || p.category === category;
       return matchesSearch && matchesCategory;
     });
-  }, [search, category, products]);
+  }, [search, category, products, language, getProductName]);
 
   return (
     <div className="min-h-screen bg-background pb-20">

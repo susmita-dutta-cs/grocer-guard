@@ -6,50 +6,38 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Products to search for at each store
-const PRODUCT_SEARCHES = [
-  { name: "Organic Bananas", category: "Fruits & Vegetables", unit: "per lb", image: "🍌" },
-  { name: "Whole Milk 1 gallon", category: "Dairy & Eggs", unit: "per gallon", image: "🥛" },
-  { name: "Large Eggs dozen", category: "Dairy & Eggs", unit: "per dozen", image: "🥚" },
-  { name: "Chicken Breast", category: "Meat & Seafood", unit: "per lb", image: "🍗" },
-  { name: "White Bread loaf", category: "Bakery", unit: "per loaf", image: "🍞" },
-  { name: "Fresh Strawberries", category: "Fruits & Vegetables", unit: "per 16 oz", image: "🍓" },
-  { name: "Cheddar Cheese block", category: "Dairy & Eggs", unit: "per 8 oz", image: "🧀" },
-  { name: "Ground Beef 80/20", category: "Meat & Seafood", unit: "per lb", image: "🥩" },
-  { name: "Coca-Cola 12 pack cans", category: "Beverages", unit: "12 cans", image: "🥤" },
-  { name: "Potato Chips bag", category: "Snacks", unit: "per 8 oz", image: "🥔" },
-  { name: "Spaghetti Pasta", category: "Pantry", unit: "per 16 oz", image: "🍝" },
-  { name: "Avocados", category: "Fruits & Vegetables", unit: "each", image: "🥑" },
+const STORES = [
+  { id: "aldi", name: "Aldi", searchSuffix: "site:aldi.be OR aldi prix prijs" },
+  { id: "albert_heijn", name: "Albert Heijn", searchSuffix: "site:ah.nl OR albert heijn prijs" },
+  { id: "carrefour", name: "Carrefour", searchSuffix: "site:carrefour.be OR carrefour prix" },
+  { id: "colruyt", name: "Colruyt", searchSuffix: "site:colruyt.be OR colruyt prix prijs" },
+  { id: "jumbo", name: "Jumbo", searchSuffix: "site:jumbo.com OR jumbo prijs" },
+  { id: "lidl", name: "Lidl", searchSuffix: "site:lidl.be OR lidl prix prijs" },
 ];
 
-const STORES = [
-  { id: "aldi", name: "Aldi", searchSuffix: "aldi.be prix price" },
-  { id: "albert_heijn", name: "Albert Heijn", searchSuffix: "ah.nl prijs price" },
-  { id: "carrefour", name: "Carrefour", searchSuffix: "carrefour.be prix price" },
-  { id: "colruyt", name: "Colruyt", searchSuffix: "colruyt.be prix price" },
-  { id: "jumbo", name: "Jumbo", searchSuffix: "jumbo.com prijs price" },
-  { id: "lidl", name: "Lidl", searchSuffix: "lidl.be prix price" },
-];
+const BATCH_SIZE = 15; // Products per invocation to stay within timeout
 
 function extractPrice(text: string): number | null {
-  // Match price patterns like €3.49, €0,99, $3.49, 3,49€, etc.
-  const priceRegex = /€\s?(\d{1,3}(?:[.,]\d{2})?)|(\d{1,3}(?:[.,]\d{2})?)\s?€|\$(\d{1,3}(?:[.,]\d{2})?)/g;
+  const priceRegex = /€\s?(\d{1,3}(?:[.,]\d{2})?)|(\d{1,3}(?:[.,]\d{2})?)\s?€/g;
   const matches = [...text.matchAll(priceRegex)];
-
   if (matches.length === 0) return null;
 
-  // Filter reasonable grocery prices (€0.25 - €50)
   const prices = matches
     .map((m) => {
-      const val = (m[1] || m[2] || m[3] || "").replace(",", ".");
+      const val = (m[1] || m[2] || "").replace(",", ".");
       return parseFloat(val);
     })
-    .filter((p) => !isNaN(p) && p >= 0.25 && p <= 50);
+    .filter((p) => !isNaN(p) && p >= 0.10 && p <= 100);
 
   if (prices.length === 0) return null;
-
   return Math.min(...prices);
 }
+
+function detectSale(text: string): boolean {
+  const saleKeywords = /promo|actie|aanbieding|soldes|korting|réduction|sale|discount|-\d+%/i;
+  return saleKeywords.test(text);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -68,45 +56,56 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Parse request params
+    let storeId: string | null = null;
+    let offset = 0;
+
+    try {
+      const body = await req.json();
+      storeId = body.store_id || null;
+      offset = body.offset || 0;
+    } catch {
+      // No body = scrape all stores from offset 0
+    }
+
+    const storesToScrape = storeId
+      ? STORES.filter((s) => s.id === storeId)
+      : STORES;
+
+    // Fetch products from DB
+    const { data: dbProducts, error: prodErr } = await supabase
+      .from("products")
+      .select("id, name")
+      .order("name")
+      .range(offset, offset + BATCH_SIZE - 1);
+
+    if (prodErr || !dbProducts || dbProducts.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          done: true,
+          message: "No more products to scrape",
+          offset,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Create scrape log
     const { data: logEntry } = await supabase
       .from("scrape_logs")
-      .insert({ status: "running" })
+      .insert({
+        status: "running",
+        store_id: storeId,
+      })
       .select()
       .single();
 
     let totalFound = 0;
     const errors: string[] = [];
 
-    for (const product of PRODUCT_SEARCHES) {
-      // Upsert product
-      const { data: dbProduct } = await supabase
-        .from("products")
-        .upsert(
-          { name: product.name, category: product.category, unit: product.unit, image: product.image },
-          { onConflict: "name", ignoreDuplicates: false }
-        )
-        .select()
-        .single();
-
-      // If upsert didn't return (name not unique constraint), try to find it
-      let productId = dbProduct?.id;
-      if (!productId) {
-        const { data: existing } = await supabase
-          .from("products")
-          .select("id")
-          .eq("name", product.name)
-          .single();
-        productId = existing?.id;
-      }
-
-      if (!productId) {
-        errors.push(`Could not find/create product: ${product.name}`);
-        continue;
-      }
-
-      // Search for prices at each store
-      for (const store of STORES) {
+    for (const product of dbProducts) {
+      for (const store of storesToScrape) {
         try {
           const query = `${product.name} ${store.searchSuffix}`;
           console.log(`Searching: ${query}`);
@@ -120,6 +119,8 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               query,
               limit: 3,
+              lang: "nl",
+              country: "BE",
               scrapeOptions: { formats: ["markdown"] },
             }),
           });
@@ -127,13 +128,17 @@ Deno.serve(async (req) => {
           const data = await response.json();
 
           if (!response.ok) {
-            errors.push(`Firecrawl search failed for ${product.name} at ${store.name}: ${JSON.stringify(data)}`);
+            if (response.status === 402) {
+              errors.push("Firecrawl credits exhausted");
+              break;
+            }
+            errors.push(`Search failed for ${product.name} at ${store.name}`);
             continue;
           }
 
-          // Extract price from search results
           let foundPrice: number | null = null;
           let sourceUrl = "";
+          let onSale = false;
 
           const results = data.data || [];
           for (const result of results) {
@@ -142,34 +147,32 @@ Deno.serve(async (req) => {
             if (price !== null) {
               foundPrice = price;
               sourceUrl = result.url || "";
+              onSale = detectSale(text);
               break;
             }
           }
 
           if (foundPrice !== null) {
-            // Upsert price
             await supabase.from("product_prices").upsert(
               {
-                product_id: productId,
+                product_id: product.id,
                 store_id: store.id,
                 price: foundPrice,
-                on_sale: false,
+                on_sale: onSale,
                 scraped_at: new Date().toISOString(),
                 source_url: sourceUrl,
               },
               { onConflict: "product_id,store_id" }
             );
             totalFound++;
-            console.log(`Found ${product.name} at ${store.name}: $${foundPrice}`);
-          } else {
-            console.log(`No price found for ${product.name} at ${store.name}`);
+            console.log(`Found ${product.name} at ${store.name}: €${foundPrice}${onSale ? " (SALE)" : ""}`);
           }
 
-          // Small delay to avoid rate limiting
-          await new Promise((r) => setTimeout(r, 500));
+          // Rate limit delay
+          await new Promise((r) => setTimeout(r, 300));
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          errors.push(`Error scraping ${product.name} at ${store.name}: ${msg}`);
+          errors.push(`Error: ${product.name} at ${store.name}: ${msg}`);
         }
       }
     }
@@ -181,17 +184,22 @@ Deno.serve(async (req) => {
         .update({
           status: errors.length > 0 ? "completed_with_errors" : "completed",
           products_found: totalFound,
-          error_message: errors.length > 0 ? errors.join("; ") : null,
+          error_message: errors.length > 0 ? errors.slice(0, 10).join("; ") : null,
           completed_at: new Date().toISOString(),
         })
         .eq("id", logEntry.id);
     }
 
+    const hasMore = dbProducts.length === BATCH_SIZE;
+
     return new Response(
       JSON.stringify({
         success: true,
-        products_found: totalFound,
-        errors: errors.length > 0 ? errors : undefined,
+        done: !hasMore,
+        products_scraped: dbProducts.length,
+        prices_found: totalFound,
+        next_offset: hasMore ? offset + BATCH_SIZE : null,
+        errors: errors.length > 0 ? errors.slice(0, 5) : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

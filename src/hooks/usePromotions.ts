@@ -13,6 +13,7 @@ export interface Promotion {
   category: string | null;
   valid_from: string | null;
   valid_until: string | null;
+  matched_product_id: string | null;
 }
 
 export function usePromotions() {

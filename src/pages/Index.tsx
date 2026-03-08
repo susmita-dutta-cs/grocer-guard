@@ -133,6 +133,15 @@ const Index = () => {
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-5">
         {activeTab === "home" && (
+          selectedProduct ? (
+            <ProductDetail
+              product={selectedProduct}
+              relatedProducts={relatedProducts}
+              onBack={() => setSelectedProduct(null)}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
+            />
+          ) : (
           <>
             <section className="relative bg-gradient-to-br from-primary/15 via-card to-card rounded-2xl border border-border overflow-hidden p-5">
               <div className="flex items-center gap-4">

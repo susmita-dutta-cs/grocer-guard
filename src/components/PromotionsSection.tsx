@@ -74,7 +74,7 @@ const PromotionsSection = () => {
           All stores
         </button>
         {storeIds.map((sid) => {
-          const store = stores.find((s) => s.id === sid);
+          const store = findStore(sid);
           return (
             <button
               key={sid}

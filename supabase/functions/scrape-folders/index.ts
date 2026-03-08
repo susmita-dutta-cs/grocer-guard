@@ -586,8 +586,8 @@ Deno.serve(async (req) => {
         }
 
         const matchedCount = matchedPromos.filter((p: any) => p.matched_product_id).length;
-        results[sid] = { promotions: promos.length, matched: matchedCount, method: config.method };
-        console.log(`${sid}: ${promos.length} promos, ${matchedCount} matched (${config.method})`);
+        results[sid] = { promotions: allPromos.length, matched: matchedCount, method: config.method };
+        console.log(`${sid}: ${allPromos.length} promos, ${matchedCount} matched (${config.method})`);
 
         // Rate limit between stores
         await new Promise((r) => setTimeout(r, 1500));

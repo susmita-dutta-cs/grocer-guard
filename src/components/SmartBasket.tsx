@@ -22,6 +22,7 @@ interface SmartBasketProps {
 const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
   const { t } = useI18n();
   const { products } = useGroceryData();
+  const { getProductName } = useProductName();
 
   return (
     <div className="space-y-4">

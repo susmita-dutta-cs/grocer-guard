@@ -83,7 +83,34 @@ const PromotionsSection = () => {
         })}
       </div>
 
-      {/* Promotion cards */}
+      {/* Category filter chips */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <button
+          onClick={() => { setSelectedCategory(null); setExpanded(false); }}
+          className={`text-[11px] px-3 py-1.5 rounded-lg border whitespace-nowrap transition-all flex items-center gap-1 ${
+            !selectedCategory
+              ? "bg-primary text-primary-foreground border-primary"
+              : "bg-card text-muted-foreground border-border hover:border-primary/30"
+          }`}
+        >
+          All
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => { setSelectedCategory(cat === selectedCategory ? null : cat); setExpanded(false); }}
+            className={`text-[11px] px-3 py-1.5 rounded-lg border whitespace-nowrap transition-all flex items-center gap-1 ${
+              selectedCategory === cat
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card text-muted-foreground border-border hover:border-primary/30"
+            }`}
+          >
+            <span>{categoryEmoji[cat.toLowerCase()] || "🛒"}</span>
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 gap-2">
         {displayed.map((promo) => {
           const store = stores.find((s) => s.id === promo.store_id);

@@ -7,12 +7,13 @@ import ProductCard from "@/components/ProductCard";
 import StatsBar from "@/components/StatsBar";
 import RecommendationRow from "@/components/RecommendationRow";
 import SmartBasket from "@/components/SmartBasket";
-import { products } from "@/data/groceryData";
+import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 
 const Index = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const { products } = useGroceryData();
   const { bestValue, deals, personalized, smartBasket, basketIds, toggleBasketItem, trackView } =
     useRecommendations();
 

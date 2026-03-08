@@ -263,18 +263,30 @@ async function scrapeStore(
   };
 }
 
-const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgian supermarkets. Extract ALL food and grocery product promotions visible in the provided content or image. Be thorough - extract every single product you can see.
+const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgian supermarkets. You will receive an image from a promotional folder/flyer. Your job is to extract EVERY single product promotion visible on the page.
+
+CRITICAL INSTRUCTIONS:
+- Look at EVERY product on the page, even small ones in corners or partially visible
+- Read ALL text: product names, brands, prices, weights, discount labels, validity dates
+- Pay close attention to price tags, red/yellow discount stickers, "1+1", "2de -50%", etc.
+- Extract the EXACT brand name as printed (e.g. "Boni Selection", "Everyday", "Colruyt", "Danone", "Coca-Cola")
+- Extract the EXACT quantity/weight as printed (e.g. "1,5 kg", "500 g", "6 x 33 cl", "per stuk", "per kg")
+- Extract both the promotional price AND original price when visible
+- Note the discount type exactly as shown (e.g. "1+1 gratis", "2de aan -50%", "€1 korting", "-25%", "2 voor €3")
+- Look for validity dates (e.g. "geldig van 03/03 tot 09/03")
 
 Return a JSON array of objects with these fields:
-- product_name: the specific product name (in Dutch, be specific e.g. "Wortelen" not just "groenten")
-- brand: the brand name (e.g. "Boni Selection", "Colruyt", "Everyday", etc. Use null if unknown)
-- quantity: the quantity/weight (e.g. "1.5 kg", "500g", "6 stuks", "1L", etc. Use null if not visible)
-- discount_type: the type of discount (e.g. "1+1 gratis", "25% korting", "2e halve prijs", "€X korting", "3+1 gratis", etc.)
+- product_name: the specific product name in Dutch as printed (be very specific, e.g. "Verse kipfilet" not just "kip")
+- brand: the exact brand name as printed (null if not visible)
+- quantity: the exact quantity/weight as printed (null if not visible)
+- discount_type: the exact discount/promotion type as shown (e.g. "1+1 gratis", "2de -50%", "€1 korting")
 - promo_price: the promotional/discounted price as a number (null if not available)
 - original_price: the original/regular price as a number (null if not available)
 - category: product category in English (e.g. "dairy", "meat", "vegetables", "fruit", "beverages", "bakery", "snacks", "household", "frozen", "other")
+- valid_from: start date if visible in format "YYYY-MM-DD" (null if not visible)
+- valid_until: end date if visible in format "YYYY-MM-DD" (null if not visible)
 
-IMPORTANT: Look carefully at ALL products in the image. Read every price tag, every discount label, every product name. Include items partially visible at edges.
+IMPORTANT: Extract EVERY product. A typical folder page has 4-12 products. If you find fewer than 3 on a non-cover page, look again more carefully.
 Only include food/grocery items. Skip non-food items like clothing, furniture, electronics, tools.
 Return ONLY the JSON array, no other text. If you can't find any promotions, return an empty array [].`;
 

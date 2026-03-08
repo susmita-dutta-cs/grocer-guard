@@ -1,0 +1,176 @@
+import { useMemo, useCallback, useState, useEffect } from "react";
+import { Product, products, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
+
+// --- Types ---
+export type RecommendationReason =
+  | "best_value"
+  | "smart_basket"
+  | "personalized"
+  | "deal_trending";
+
+export type Recommendation = {
+  product: Product;
+  reason: RecommendationReason;
+  label: string;
+  score: number;
+};
+
+export type SmartBasketResult = {
+  storeId: string;
+  storeName: string;
+  totalCost: number;
+  itemCount: number;
+  savings: number;
+};
+
+// --- Browsing history (localStorage) ---
+const HISTORY_KEY = "grocerysaver_history";
+const MAX_HISTORY = 50;
+
+function getViewHistory(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function addToViewHistory(productId: string) {
+  const history = getViewHistory();
+  history.unshift(productId);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, MAX_HISTORY)));
+}
+
+// --- Algorithms ---
+
+/** Best Value: products with the highest savings percentage */
+function getBestValuePicks(count = 4): Recommendation[] {
+  return products
+    .map((p) => ({
+      product: p,
+      reason: "best_value" as const,
+      label: `Save ${getSavingsPercent(p)}%`,
+      score: getSavingsPercent(p),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count);
+}
+
+/** Smart Basket: given a list of product IDs, recommend cheapest store */
+function getSmartBasket(selectedIds: string[]): SmartBasketResult[] {
+  const selected = products.filter((p) => selectedIds.includes(p.id));
+  if (selected.length === 0) return [];
+
+  return stores
+    .map((store) => {
+      const totalCost = selected.reduce((sum, p) => {
+        const storePrice = p.prices.find((pp) => pp.storeId === store.id);
+        return sum + (storePrice?.price ?? 0);
+      }, 0);
+
+      const maxTotal = selected.reduce((sum, p) => {
+        return sum + getHighestPrice(p).price;
+      }, 0);
+
+      return {
+        storeId: store.id,
+        storeName: store.name,
+        totalCost: Math.round(totalCost * 100) / 100,
+        itemCount: selected.length,
+        savings: Math.round((maxTotal - totalCost) * 100) / 100,
+      };
+    })
+    .sort((a, b) => a.totalCost - b.totalCost);
+}
+
+/** Deals & Trending: products currently on sale, sorted by deal strength */
+function getDealsAndTrending(count = 4): Recommendation[] {
+  const onSaleProducts = products.filter((p) =>
+    p.prices.some((pp) => pp.onSale)
+  );
+
+  return onSaleProducts
+    .map((p) => {
+      const salePrice = p.prices.find((pp) => pp.onSale)!;
+      const highest = getHighestPrice(p).price;
+      const discount = Math.round(((highest - salePrice.price) / highest) * 100);
+      const store = stores.find((s) => s.id === salePrice.storeId)!;
+      return {
+        product: p,
+        reason: "deal_trending" as const,
+        label: `${store.name} — $${salePrice.price.toFixed(2)}`,
+        score: discount,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count);
+}
+
+/** Personalized: based on browsing history, recommend related category items */
+function getPersonalized(count = 4): Recommendation[] {
+  const history = getViewHistory();
+  if (history.length === 0) return [];
+
+  // Count category frequency from history
+  const catFreq: Record<string, number> = {};
+  history.forEach((id) => {
+    const p = products.find((pr) => pr.id === id);
+    if (p) {
+      catFreq[p.category] = (catFreq[p.category] || 0) + 1;
+    }
+  });
+
+  // Sort categories by frequency
+  const topCats = Object.entries(catFreq)
+    .sort(([, a], [, b]) => b - a)
+    .map(([cat]) => cat);
+
+  // Find products in top categories not recently viewed
+  const recentSet = new Set(history.slice(0, 5));
+  const recommendations = products
+    .filter((p) => topCats.includes(p.category) && !recentSet.has(p.id))
+    .map((p) => ({
+      product: p,
+      reason: "personalized" as const,
+      label: `Because you viewed ${p.category}`,
+      score: (topCats.indexOf(p.category) + 1) * -1 + getSavingsPercent(p),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count);
+
+  return recommendations;
+}
+
+// --- Hook ---
+export function useRecommendations() {
+  const [basketIds, setBasketIds] = useState<string[]>([]);
+  const [historyVersion, setHistoryVersion] = useState(0);
+
+  const trackView = useCallback((productId: string) => {
+    addToViewHistory(productId);
+    setHistoryVersion((v) => v + 1);
+  }, []);
+
+  const toggleBasketItem = useCallback((productId: string) => {
+    setBasketIds((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
+    );
+  }, []);
+
+  const bestValue = useMemo(() => getBestValuePicks(4), []);
+  const deals = useMemo(() => getDealsAndTrending(4), []);
+  const personalized = useMemo(() => getPersonalized(4), [historyVersion]);
+  const smartBasket = useMemo(() => getSmartBasket(basketIds), [basketIds]);
+
+  return {
+    bestValue,
+    deals,
+    personalized,
+    smartBasket,
+    basketIds,
+    toggleBasketItem,
+    trackView,
+  };
+}

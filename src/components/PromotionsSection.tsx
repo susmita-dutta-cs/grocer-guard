@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Newspaper, ChevronRight, Heart } from "lucide-react";
 import { usePromotions } from "@/hooks/usePromotions";
-import { useFavorites } from "@/hooks/useFavorites";
+import { usePromotionFavorites } from "@/hooks/usePromotionFavorites";
 import { stores } from "@/data/groceryData";
 
 // Normalize store_id from scraped data (hyphens) to app format (underscores)

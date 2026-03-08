@@ -8,6 +8,7 @@ import ProductDetail from "@/components/ProductDetail";
 import StatsBar from "@/components/StatsBar";
 import RecommendationRow from "@/components/RecommendationRow";
 import SmartBasket from "@/components/SmartBasket";
+import SavedDealsBasket from "@/components/SavedDealsBasket";
 import PromotionsSection from "@/components/PromotionsSection";
 import BottomNav from "@/components/BottomNav";
 import SettingsPanel from "@/components/SettingsPanel";

@@ -110,12 +110,10 @@ async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): P
   const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 24;
   console.log(`Total pages: ${totalPages}`);
 
-  // Generate JPG page image URLs for ALL pages (including cover for completeness)
-  // Issuu serves high-quality JPG images that work much better with vision AI
+  // Generate JPG page image URLs (skip cover page 1)
   const pageUrls: string[] = [];
-  const maxPages = Math.min(totalPages, 30); // Process up to 30 pages
-  for (let i = 1; i <= maxPages; i++) {
-    // Use Issuu's image CDN which provides actual raster images
+  const maxPages = Math.min(totalPages, 28);
+  for (let i = 2; i <= maxPages; i++) {
     pageUrls.push(`https://image.issuu.com/${svgHash}/jpg/page_${i}.jpg`);
   }
 

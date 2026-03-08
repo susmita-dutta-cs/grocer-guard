@@ -46,6 +46,20 @@ interface FolderProgress {
   results: Record<string, FolderScrapeResult>;
 }
 
+interface Promotion {
+  id: string;
+  product_name: string;
+  brand: string | null;
+  store_id: string;
+  original_price: number | null;
+  promo_price: number | null;
+  quantity: string | null;
+  discount_type: string | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  scraped_at: string;
+}
+
 const AdminPanel = () => {
   const { user, isAdmin, loading } = useAuth();
   const { t } = useI18n();
@@ -67,6 +81,7 @@ const AdminPanel = () => {
     storeId: null,
     results: {},
   });
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -76,6 +91,7 @@ const AdminPanel = () => {
 
   useEffect(() => {
     fetchData();
+    fetchPromotions();
   }, []);
 
   const fetchData = async () => {
@@ -85,6 +101,14 @@ const AdminPanel = () => {
     ]);
     if (prods) setProducts(prods);
     if (prs) setPrices(prs as DbPrice[]);
+  };
+
+  const fetchPromotions = async () => {
+    const { data } = await supabase
+      .from("weekly_promotions")
+      .select("*")
+      .order("scraped_at", { ascending: false });
+    if (data) setPromotions(data as Promotion[]);
   };
 
   const getPrice = (productId: string, storeId: string) => {
@@ -241,6 +265,7 @@ const AdminPanel = () => {
       );
       toast.success(`Folders scraped: ${totalPromos} promotions found, ${totalMatched} matched to products`);
       await fetchData();
+      await fetchPromotions();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Folder scraping failed";
       setFolderProgress({ status: "error", storeId: storeId || null, results: {} });
@@ -454,6 +479,58 @@ const AdminPanel = () => {
             </div>
           )}
         </div>
+
+        {/* Scraped Promotions List */}
+        {promotions.length > 0 && (
+          <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+            <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+              <Newspaper className="h-4 w-4 text-primary" />
+              Scraped Promotions ({promotions.length})
+            </h2>
+            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 px-2 font-semibold text-foreground">Store</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground">Product</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground">Brand</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground">Quantity</th>
+                    <th className="text-right py-2 px-2 font-semibold text-foreground">Original</th>
+                    <th className="text-right py-2 px-2 font-semibold text-foreground">Promo</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground">Type</th>
+                    <th className="text-left py-2 px-2 font-semibold text-foreground">Valid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promotions.map((promo) => (
+                    <tr key={promo.id} className="border-b border-border/30 hover:bg-muted/30">
+                      <td className="py-2 px-2 text-muted-foreground">
+                        {stores.find(s => s.id === promo.store_id)?.name || promo.store_id}
+                      </td>
+                      <td className="py-2 px-2 font-medium text-foreground">{promo.product_name}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{promo.brand || "—"}</td>
+                      <td className="py-2 px-2 text-muted-foreground">{promo.quantity || "—"}</td>
+                      <td className="py-2 px-2 text-right text-muted-foreground">
+                        {promo.original_price != null ? `€${promo.original_price.toFixed(2)}` : "—"}
+                      </td>
+                      <td className="py-2 px-2 text-right font-semibold text-primary">
+                        {promo.promo_price != null ? `€${promo.promo_price.toFixed(2)}` : "—"}
+                      </td>
+                      <td className="py-2 px-2 text-muted-foreground">{promo.discount_type || "—"}</td>
+                      <td className="py-2 px-2 text-[10px] text-muted-foreground">
+                        {promo.valid_from && promo.valid_until
+                          ? `${promo.valid_from} → ${promo.valid_until}`
+                          : promo.valid_until
+                          ? `until ${promo.valid_until}`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground">
           Edit prices below. Changed cells are highlighted. Click Save to apply all changes.

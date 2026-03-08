@@ -26,6 +26,7 @@ const Index = () => {
   const { getProductName } = useProductName();
   const { bestValue, deals, personalized, smartBasket, basketIds, toggleBasketItem, trackView } =
     useRecommendations();
+  const { favoriteIds, isFavorite, toggleFavorite, count: favCount } = useFavorites();
 
   const filtered = useMemo(() => {
     return products.filter((p) => {

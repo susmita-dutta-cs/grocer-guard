@@ -81,6 +81,7 @@ const AdminPanel = () => {
     storeId: null,
     results: {},
   });
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -90,6 +91,7 @@ const AdminPanel = () => {
 
   useEffect(() => {
     fetchData();
+    fetchPromotions();
   }, []);
 
   const fetchData = async () => {

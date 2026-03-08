@@ -40,6 +40,9 @@ export const categories = [
   "Pantry",
   "Beverages",
   "Snacks",
+  "Frozen",
+  "Household",
+  "Personal Care",
 ];
 
 export const products: Product[] = [

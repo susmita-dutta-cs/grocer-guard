@@ -16,12 +16,22 @@ export type Recommendation = {
   score: number;
 };
 
+export type SmartBasketItem = {
+  productId: string;
+  productName: string;
+  brand?: string;
+  image: string;
+  price: number;
+  available: boolean;
+};
+
 export type SmartBasketResult = {
   storeId: string;
   storeName: string;
   totalCost: number;
   itemCount: number;
   savings: number;
+  items: SmartBasketItem[];
 };
 
 // --- Browsing history (localStorage) ---
@@ -62,14 +72,20 @@ function getSmartBasket(allProducts: Product[], selectedIds: string[]): SmartBas
 
   return stores
     .map((store) => {
-      const totalCost = selected.reduce((sum, p) => {
+      const items: SmartBasketItem[] = selected.map((p) => {
         const storePrice = p.prices.find((pp) => pp.storeId === store.id);
-        return sum + (storePrice?.price ?? 0);
-      }, 0);
+        return {
+          productId: p.id,
+          productName: p.name,
+          brand: p.brand,
+          image: p.image,
+          price: storePrice?.price ?? 0,
+          available: !!storePrice,
+        };
+      });
 
-      const maxTotal = selected.reduce((sum, p) => {
-        return sum + getHighestPrice(p).price;
-      }, 0);
+      const totalCost = items.reduce((sum, item) => sum + item.price, 0);
+      const maxTotal = selected.reduce((sum, p) => sum + getHighestPrice(p).price, 0);
 
       return {
         storeId: store.id,
@@ -77,6 +93,7 @@ function getSmartBasket(allProducts: Product[], selectedIds: string[]): SmartBas
         totalCost: Math.round(totalCost * 100) / 100,
         itemCount: selected.length,
         savings: Math.round((maxTotal - totalCost) * 100) / 100,
+        items,
       };
     })
     .sort((a, b) => a.totalCost - b.totalCost);

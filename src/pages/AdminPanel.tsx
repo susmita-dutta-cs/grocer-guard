@@ -62,6 +62,11 @@ const AdminPanel = () => {
     totalScraped: 0,
     errors: [],
   });
+  const [folderProgress, setFolderProgress] = useState<FolderProgress>({
+    status: "idle",
+    storeId: null,
+    results: {},
+  });
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {

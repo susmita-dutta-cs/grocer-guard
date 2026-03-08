@@ -195,13 +195,10 @@ const Index = () => {
           )
         )}
 
-        {activeTab === "favorites" && (
-          <FavoritesSection favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />
-        )}
-
         {activeTab === "basket" && (
           <div className="space-y-6">
             <SavedDealsBasket />
+            <FavoritesSection favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />
             <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
           </div>
         )}

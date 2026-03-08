@@ -19,9 +19,9 @@ const STORE_PROMO_URLS: Record<string, StoreConfig> = {
   albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape", waitFor: 3000 },
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
   colruyt: {
-    url: "https://www.colruyt.be/nl/acties",
-    method: "screenshot",
-    waitFor: 8000,
+    url: "https://www.colruyt.be/nl/folders",
+    method: "issuu" as any,
+    waitFor: 5000,
   },
   jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape", waitFor: 3000 },
   lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "screenshot", waitFor: 5000 },

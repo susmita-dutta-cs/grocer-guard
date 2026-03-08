@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Product, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
-import { TrendingDown, Tag } from "lucide-react";
+import { TrendingDown, Tag, Heart } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import { useProductName } from "@/hooks/useProductName";
 import { useGroceryData } from "@/hooks/useGroceryData";
@@ -9,6 +9,8 @@ interface ProductCardProps {
   product: Product;
   index: number;
   onView?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 const storeColorMap: Record<string, string> = {

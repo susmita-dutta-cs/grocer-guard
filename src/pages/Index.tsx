@@ -10,10 +10,12 @@ import SmartBasket from "@/components/SmartBasket";
 import PromotionsSection from "@/components/PromotionsSection";
 import BottomNav from "@/components/BottomNav";
 import SettingsPanel from "@/components/SettingsPanel";
+import FavoritesSection from "@/components/FavoritesSection";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useI18n, categoryKeyMap } from "@/hooks/useI18n";
 import { useProductName } from "@/hooks/useProductName";
+import { useFavorites } from "@/hooks/useFavorites";
 
 const Index = () => {
   const [search, setSearch] = useState("");

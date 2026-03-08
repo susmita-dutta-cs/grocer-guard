@@ -78,7 +78,7 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
                     isFirst ? "text-accent-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  ${r.totalCost.toFixed(2)}
+                  €{r.totalCost.toFixed(2)}
                 </span>
                 {isFirst && r.savings > 0 && (
                   <span className="text-[10px] font-bold bg-savings text-savings-foreground px-2 py-0.5 rounded-full">

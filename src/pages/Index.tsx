@@ -189,6 +189,7 @@ const Index = () => {
               </>
             )}
           </>
+          )
         )}
 
         {activeTab === "search" && (

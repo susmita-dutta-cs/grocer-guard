@@ -132,7 +132,7 @@ async function extractPromosWithVision(
 
     userContent.push({
       type: "image_url",
-      image_url: { url: screenshotDataUrl },
+      image_url: { url: imageUrl },
     });
 
     messages.push({ role: "user", content: userContent });

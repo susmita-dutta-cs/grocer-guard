@@ -1,8 +1,22 @@
-import { ArrowLeft, Heart } from "lucide-react";
+import { ArrowLeft, Heart, Tag } from "lucide-react";
 import { Product, stores, getLowestPrice } from "@/data/groceryData";
 import { useProductName } from "@/hooks/useProductName";
 import { useI18n } from "@/hooks/useI18n";
 import { useMemo } from "react";
+
+const storeHomeBrands: Record<string, string[]> = {
+  aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
+  albert_heijn: ["AH", "Albert Heijn", "AH Basic", "AH Excellent", "AH Terra"],
+  carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Simpl"],
+  colruyt: ["Boni", "Everyday", "Spar"],
+  jumbo: ["Jumbo"],
+  lidl: ["Lidl", "Milbona", "Cien", "Silvercrest", "Parkside", "Perlenbacher", "Pilos"],
+};
+
+function isHomeBrandForStore(brand: string, storeId: string): boolean {
+  const brands = storeHomeBrands[storeId] || [];
+  return brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()));
+}
 
 const storeColorMap: Record<string, string> = {
   aldi: "bg-store-1",

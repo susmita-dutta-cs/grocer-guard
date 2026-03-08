@@ -7,7 +7,7 @@ import ProductCard from "@/components/ProductCard";
 import StatsBar from "@/components/StatsBar";
 import RecommendationRow from "@/components/RecommendationRow";
 import SmartBasket from "@/components/SmartBasket";
-import { products } from "@/data/groceryData";
+import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 
 const Index = () => {

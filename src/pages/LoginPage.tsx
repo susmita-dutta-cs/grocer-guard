@@ -37,6 +37,8 @@ const LoginPage = () => {
           navigate("/");
         }
       }
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

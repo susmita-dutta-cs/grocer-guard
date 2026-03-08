@@ -23,7 +23,8 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
 
   return (
     <div
-      className="bg-card rounded-xl border border-border p-4 shadow-sm hover:shadow-md transition-all animate-fade-in-up"
+      onClick={onView}
+      className="bg-card rounded-xl border border-border p-4 shadow-sm hover:shadow-md transition-all animate-fade-in-up cursor-pointer"
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Header */}

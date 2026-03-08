@@ -75,7 +75,7 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
                       isLowest ? "text-foreground" : "text-muted-foreground"
                     }`}
                   >
-                    ${pp.price.toFixed(2)}
+                    €{pp.price.toFixed(2)}
                     {pp.onSale && (
                       <span className="ml-1 text-savings font-normal text-[10px]">SALE</span>
                     )}

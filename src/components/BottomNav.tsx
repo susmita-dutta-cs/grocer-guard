@@ -10,7 +10,6 @@ interface BottomNavProps {
 
 const tabIcons = {
   home: Home,
-  search: Search,
   basket: ShoppingCart,
   settings: Settings,
 };

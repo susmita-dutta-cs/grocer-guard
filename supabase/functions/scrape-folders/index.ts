@@ -95,6 +95,15 @@ const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgia
 Only include food/grocery items. Skip non-food items like clothing, furniture, electronics, tools.
 Return ONLY the JSON array, no other text. If you can't find any promotions, return an empty array [].`;
 
+function getScreenshotUrl(screenshotValue: string): string {
+  // If it's a URL, use it directly
+  if (screenshotValue.startsWith("http")) return screenshotValue;
+  // If it's a data URL, use as-is
+  if (screenshotValue.startsWith("data:")) return screenshotValue;
+  // Otherwise treat as raw base64
+  return `data:image/png;base64,${screenshotValue}`;
+}
+
 async function extractPromosWithVision(
   lovableApiKey: string,
   storeName: string,
@@ -106,7 +115,7 @@ async function extractPromosWithVision(
 
   // Build user message with both text and image if available
   if (scrapeResult.screenshot) {
-    // Use vision: send image + any available markdown context
+    const imageUrl = getScreenshotUrl(scrapeResult.screenshot);
     const userContent: any[] = [];
 
     if (scrapeResult.markdown && scrapeResult.markdown.length > 100) {
@@ -123,11 +132,7 @@ async function extractPromosWithVision(
 
     userContent.push({
       type: "image_url",
-      image_url: {
-        url: scrapeResult.screenshot.startsWith("data:")
-          ? scrapeResult.screenshot
-          : `data:image/png;base64,${scrapeResult.screenshot}`,
-      },
+      image_url: { url: imageUrl },
     });
 
     messages.push({ role: "user", content: userContent });

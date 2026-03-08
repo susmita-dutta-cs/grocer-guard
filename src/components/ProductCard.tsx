@@ -47,7 +47,7 @@ function getHomeBrandStore(brand: string): string | undefined {
   return undefined;
 }
 
-const ProductCard = ({ product, index, onView }: ProductCardProps) => {
+const ProductCard = ({ product, index, onView, isFavorite, onToggleFavorite }: ProductCardProps) => {
   const { t } = useI18n();
   const { getProductName } = useProductName();
   const { products: allProducts } = useGroceryData();

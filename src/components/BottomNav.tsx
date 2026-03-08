@@ -24,9 +24,9 @@ const tabKeys = {
   settings: "nav.settings",
 };
 
-const BottomNav = ({ active, onNavigate, basketCount = 0 }: BottomNavProps) => {
+const BottomNav = ({ active, onNavigate, basketCount = 0, favoritesCount = 0 }: BottomNavProps) => {
   const { t } = useI18n();
-  const tabs = ["home", "search", "basket", "settings"] as const;
+  const tabs = ["home", "search", "favorites", "basket", "settings"] as const;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border">

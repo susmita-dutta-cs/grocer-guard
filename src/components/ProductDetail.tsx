@@ -27,6 +27,22 @@ function isHomeBrandForStore(brand: string, storeId: string): boolean {
   return brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()));
 }
 
+function isAnyHomeBrand(brand: string | undefined): boolean {
+  if (!brand) return false;
+  return Object.values(storeHomeBrands).some((brands) =>
+    brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()))
+  );
+}
+
+function getHomeBrandStoreId(brand: string): string | undefined {
+  for (const [storeId, brands] of Object.entries(storeHomeBrands)) {
+    if (brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()))) {
+      return storeId;
+    }
+  }
+  return undefined;
+}
+
 interface ProductDetailProps {
   product: Product;
   relatedProducts: Product[];
@@ -68,11 +84,17 @@ const ProductDetail = ({
     const map = new Map<string, BrandPrice[]>();
 
     for (const variant of allVariants) {
+      const brandName = variant.brand || getProductName(variant);
+      const homeBrandOwner = isAnyHomeBrand(variant.brand) ? getHomeBrandStoreId(variant.brand!) : null;
+
       for (const pp of variant.prices) {
+        // If this is a home brand, only show it under its own store
+        if (homeBrandOwner && pp.storeId !== homeBrandOwner) continue;
+
         if (!map.has(pp.storeId)) map.set(pp.storeId, []);
         map.get(pp.storeId)!.push({
           productId: variant.id,
-          brand: variant.brand || getProductName(variant),
+          brand: brandName,
           price: pp.price,
           onSale: pp.onSale || false,
         });

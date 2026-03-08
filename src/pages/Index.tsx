@@ -7,6 +7,7 @@ import ProductCard from "@/components/ProductCard";
 import StatsBar from "@/components/StatsBar";
 import RecommendationRow from "@/components/RecommendationRow";
 import SmartBasket from "@/components/SmartBasket";
+import PromotionsSection from "@/components/PromotionsSection";
 import BottomNav from "@/components/BottomNav";
 import SettingsPanel from "@/components/SettingsPanel";
 import { useGroceryData } from "@/hooks/useGroceryData";

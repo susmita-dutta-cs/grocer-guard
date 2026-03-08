@@ -1,7 +1,8 @@
-import { ArrowLeft, Heart, TrendingDown, Tag } from "lucide-react";
-import { Product, stores, getLowestPrice, getHighestPrice } from "@/data/groceryData";
+import { ArrowLeft, Heart } from "lucide-react";
+import { Product, stores, getLowestPrice } from "@/data/groceryData";
 import { useProductName } from "@/hooks/useProductName";
 import { useI18n } from "@/hooks/useI18n";
+import { useMemo } from "react";
 
 const storeColorMap: Record<string, string> = {
   aldi: "bg-store-1",
@@ -20,6 +21,20 @@ interface ProductDetailProps {
   onToggleFavorite: (id: string) => void;
 }
 
+type BrandPrice = {
+  productId: string;
+  brand: string;
+  price: number;
+  onSale: boolean;
+};
+
+type StoreGroup = {
+  storeId: string;
+  storeName: string;
+  brands: BrandPrice[];
+  cheapest: number;
+};
+
 const ProductDetail = ({
   product,
   relatedProducts,
@@ -30,11 +45,55 @@ const ProductDetail = ({
   const { getProductName } = useProductName();
   const { t } = useI18n();
 
-  // All brands for this product type (including the selected one)
-  const allBrands = [product, ...relatedProducts.filter((p) => p.id !== product.id)];
+  const allVariants = useMemo(
+    () => [product, ...relatedProducts.filter((p) => p.id !== product.id)],
+    [product, relatedProducts]
+  );
 
-  // Sort by lowest price
-  const sorted = allBrands.slice().sort((a, b) => getLowestPrice(a).price - getLowestPrice(b).price);
+  // Group by store: for each store, collect all brand prices
+  const storeGroups: StoreGroup[] = useMemo(() => {
+    const map = new Map<string, BrandPrice[]>();
+
+    for (const variant of allVariants) {
+      for (const pp of variant.prices) {
+        if (!map.has(pp.storeId)) map.set(pp.storeId, []);
+        map.get(pp.storeId)!.push({
+          productId: variant.id,
+          brand: variant.brand || getProductName(variant),
+          price: pp.price,
+          onSale: pp.onSale || false,
+        });
+      }
+    }
+
+    const groups: StoreGroup[] = [];
+    for (const [storeId, brands] of map) {
+      const store = stores.find((s) => s.id === storeId);
+      if (!store) continue;
+      const sorted = brands.slice().sort((a, b) => a.price - b.price);
+      groups.push({
+        storeId,
+        storeName: store.name,
+        brands: sorted,
+        cheapest: sorted[0].price,
+      });
+    }
+
+    return groups.sort((a, b) => a.cheapest - b.cheapest);
+  }, [allVariants, getProductName]);
+
+  // Global max price for bar scaling
+  const globalMax = useMemo(() => {
+    let max = 0;
+    for (const g of storeGroups) {
+      for (const b of g.brands) {
+        if (b.price > max) max = b.price;
+      }
+    }
+    return max || 1;
+  }, [storeGroups]);
+
+  const globalCheapest = storeGroups.length > 0 ? storeGroups[0].cheapest : 0;
 
   return (
     <div className="space-y-4 animate-fade-in-up">
@@ -53,102 +112,91 @@ const ProductDetail = ({
               {getProductName(product)}
             </h2>
             <p className="text-[10px] text-muted-foreground">
-              {sorted.length} brand{sorted.length !== 1 ? "s" : ""} · {product.unit}
+              {storeGroups.length} store{storeGroups.length !== 1 ? "s" : ""} · {allVariants.length} brand{allVariants.length !== 1 ? "s" : ""} · {product.unit}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Brand cards */}
+      {/* Store cards */}
       <div className="space-y-3">
-        {sorted.map((p, i) => {
-          const lowest = getLowestPrice(p);
-          const highest = getHighestPrice(p);
-          const lowestStore = stores.find((s) => s.id === lowest.storeId);
-          const isCheapest = i === 0;
+        {storeGroups.map((group, i) => {
+          const isCheapestStore = i === 0;
 
           return (
             <div
-              key={p.id}
+              key={group.storeId}
               className={`bg-card rounded-2xl border p-4 space-y-3 animate-fade-in-up ${
-                isCheapest ? "border-primary/30 shadow-sm" : "border-border"
+                isCheapestStore ? "border-primary/30 shadow-sm" : "border-border"
               }`}
               style={{ animationDelay: `${i * 50}ms` }}
             >
-              {/* Brand header */}
+              {/* Store header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  {isCheapest && (
+                  <div className={`h-3 w-3 rounded-full ${storeColorMap[group.storeId]}`} />
+                  <p className="font-display font-semibold text-sm text-card-foreground">
+                    {group.storeName}
+                  </p>
+                  {isCheapestStore && (
                     <span className="bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      Best Price
+                      Cheapest Store
                     </span>
                   )}
-                  <div>
-                    <p className="font-display font-semibold text-sm text-card-foreground">
-                      {p.brand || getProductName(p)}
-                    </p>
-                    {p.brand && (
-                      <p className="text-[10px] text-muted-foreground">{getProductName(p)}</p>
-                    )}
-                  </div>
                 </div>
-                <button
-                  onClick={() => onToggleFavorite(p.id)}
-                  className="p-1.5 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <Heart
-                    className={`h-4 w-4 transition-colors ${
-                      isFavorite(p.id) ? "fill-primary text-primary" : "text-muted-foreground"
-                    }`}
-                  />
-                </button>
               </div>
 
-              {/* Price bars */}
+              {/* Brand price bars */}
               <div className="space-y-1.5">
-                {p.prices
-                  .slice()
-                  .sort((a, b) => a.price - b.price)
-                  .map((pp) => {
-                    const store = stores.find((s) => s.id === pp.storeId);
-                    const isLowest = pp.storeId === lowest.storeId;
-                    const barWidth = Math.max(25, (pp.price / highest.price) * 100);
+                {group.brands.map((bp) => {
+                  const barWidth = Math.max(25, (bp.price / globalMax) * 100);
+                  const isLowest = bp.price === group.cheapest;
 
-                    return (
-                      <div key={pp.storeId} className="flex items-center gap-2">
-                        <span className="text-[10px] font-medium w-14 text-muted-foreground truncate">
-                          {store?.name}
+                  return (
+                    <div key={bp.productId} className="flex items-center gap-2">
+                      <span className="text-[10px] font-medium w-20 text-muted-foreground truncate">
+                        {bp.brand}
+                      </span>
+                      <div className="flex-1 h-6 bg-muted/50 rounded-lg overflow-hidden relative">
+                        <div
+                          className={`h-full rounded-lg transition-all duration-500 ${storeColorMap[group.storeId]} ${
+                            isLowest ? "opacity-90" : "opacity-30"
+                          }`}
+                          style={{ width: `${barWidth}%` }}
+                        />
+                        <span
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
+                            isLowest ? "text-foreground" : "text-muted-foreground"
+                          }`}
+                        >
+                          €{bp.price.toFixed(2)}
+                          {bp.onSale && (
+                            <span className="ml-1 text-primary font-normal text-[9px]">
+                              {t("product.sale")}
+                            </span>
+                          )}
                         </span>
-                        <div className="flex-1 h-6 bg-muted/50 rounded-lg overflow-hidden relative">
-                          <div
-                            className={`h-full rounded-lg transition-all duration-500 ${storeColorMap[pp.storeId]} ${
-                              isLowest ? "opacity-90" : "opacity-25"
-                            }`}
-                            style={{ width: `${barWidth}%` }}
-                          />
-                          <span
-                            className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
-                              isLowest ? "text-foreground" : "text-muted-foreground"
-                            }`}
-                          >
-                            €{pp.price.toFixed(2)}
-                            {pp.onSale && (
-                              <span className="ml-1 text-primary font-normal text-[9px]">
-                                {t("product.sale")}
-                              </span>
-                            )}
-                          </span>
-                        </div>
                       </div>
-                    );
-                  })}
+                      <button
+                        onClick={() => onToggleFavorite(bp.productId)}
+                        className="p-1 rounded-lg hover:bg-muted transition-colors"
+                      >
+                        <Heart
+                          className={`h-3.5 w-3.5 transition-colors ${
+                            isFavorite(bp.productId) ? "fill-primary text-primary" : "text-muted-foreground"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Best deal footer */}
+              {/* Store cheapest footer */}
               <div className="pt-2 border-t border-border flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Cheapest</span>
+                <span className="text-[10px] text-muted-foreground">From</span>
                 <span className="text-xs font-display font-bold text-primary">
-                  {lowestStore?.name} — €{lowest.price.toFixed(2)}
+                  €{group.cheapest.toFixed(2)}
                 </span>
               </div>
             </div>

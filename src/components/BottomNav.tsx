@@ -1,4 +1,4 @@
-import { Home, Search, ShoppingCart, Settings } from "lucide-react";
+import { Home, Search, ShoppingCart, Heart, Settings } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 
 interface BottomNavProps {

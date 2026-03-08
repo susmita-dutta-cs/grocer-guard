@@ -83,17 +83,6 @@ const AdminPanel = () => {
   });
   const [promotions, setPromotions] = useState<Promotion[]>([]);
 
-  useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      navigate("/login");
-    }
-  }, [user, isAdmin, loading, navigate]);
-
-  useEffect(() => {
-    fetchData();
-    fetchPromotions();
-  }, []);
-
   const fetchData = async () => {
     const [{ data: prods }, { data: prs }] = await Promise.all([
       supabase.from("products").select("*").order("name"),
@@ -110,6 +99,17 @@ const AdminPanel = () => {
       .order("scraped_at", { ascending: false });
     if (data) setPromotions(data as Promotion[]);
   };
+
+  useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      navigate("/login");
+    }
+  }, [user, isAdmin, loading, navigate]);
+
+  useEffect(() => {
+    fetchData();
+    fetchPromotions();
+  }, []);
 
   const getPrice = (productId: string, storeId: string) => {
     return prices.find((p) => p.product_id === productId && p.store_id === storeId);

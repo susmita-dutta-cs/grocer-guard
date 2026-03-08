@@ -142,15 +142,13 @@ const PromotionsSection = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (promo.matched_product_id) {
-                        toggleFavorite(promo.matched_product_id);
-                      }
+                      toggleFavorite(promo.id);
                     }}
-                    className={`p-1.5 rounded-lg transition-colors ${promo.matched_product_id ? "hover:bg-muted" : "opacity-40 cursor-default"}`}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-muted"
                   >
                     <Heart
                       className={`h-4 w-4 transition-colors ${
-                        promo.matched_product_id && isFavorite(promo.matched_product_id) ? "fill-primary text-primary" : "text-muted-foreground"
+                        isFavorite(promo.id) ? "fill-primary text-primary" : "text-muted-foreground"
                       }`}
                     />
                   </button>

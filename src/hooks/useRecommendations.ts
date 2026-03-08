@@ -1,7 +1,6 @@
 import { useMemo, useCallback, useState } from "react";
 import { Product, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
 import { useGroceryData } from "@/hooks/useGroceryData";
-import { useI18n } from "@/hooks/useI18n";
 
 // --- Types ---
 export type RecommendationReason =

@@ -542,9 +542,6 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Clear old promotions FIRST so partial results are saved even on timeout
-          await supabase.from("weekly_promotions").delete().eq("store_id", sid);
-
           const now = new Date();
           const validFrom = new Date(now);
           validFrom.setDate(validFrom.getDate() - validFrom.getDay() + 1);
@@ -552,6 +549,7 @@ Deno.serve(async (req) => {
           validUntil.setDate(validUntil.getDate() + 6);
 
           let totalInserted = 0;
+          let deletedOld = false;
 
           // Process 4 page images per single AI call
           const pagesPerCall = 4;
@@ -569,6 +567,11 @@ Deno.serve(async (req) => {
               console.log(`Pages ${pageNumbers.join(",")}: extracted ${batchPromos.length} promos`);
 
               if (batchPromos.length > 0) {
+                // Delete old promos only on first successful batch
+                if (!deletedOld) {
+                  await supabase.from("weekly_promotions").delete().eq("store_id", sid);
+                  deletedOld = true;
+                }
                 // Match and save immediately
                 const matched = await matchProducts(supabase, batchPromos);
                 const inserts = matched.map((p: any) => ({

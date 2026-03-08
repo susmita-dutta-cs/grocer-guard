@@ -103,6 +103,14 @@ const AdminPanel = () => {
     if (prs) setPrices(prs as DbPrice[]);
   };
 
+  const fetchPromotions = async () => {
+    const { data } = await supabase
+      .from("weekly_promotions")
+      .select("*")
+      .order("scraped_at", { ascending: false });
+    if (data) setPromotions(data as Promotion[]);
+  };
+
   const getPrice = (productId: string, storeId: string) => {
     return prices.find((p) => p.product_id === productId && p.store_id === storeId);
   };

@@ -84,11 +84,17 @@ const ProductDetail = ({
     const map = new Map<string, BrandPrice[]>();
 
     for (const variant of allVariants) {
+      const brandName = variant.brand || getProductName(variant);
+      const homeBrandOwner = isAnyHomeBrand(variant.brand) ? getHomeBrandStoreId(variant.brand!) : null;
+
       for (const pp of variant.prices) {
+        // If this is a home brand, only show it under its own store
+        if (homeBrandOwner && pp.storeId !== homeBrandOwner) continue;
+
         if (!map.has(pp.storeId)) map.set(pp.storeId, []);
         map.get(pp.storeId)!.push({
           productId: variant.id,
-          brand: variant.brand || getProductName(variant),
+          brand: brandName,
           price: pp.price,
           onSale: pp.onSale || false,
         });

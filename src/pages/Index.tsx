@@ -42,12 +42,11 @@ const Index = () => {
     });
   }, [search, category, products, language, getProductName]);
 
-  // Find related products by shared keywords in name or same category+similar terms
+  // Find related products by matching the primary keyword in the product name
   const relatedProducts = useMemo(() => {
     if (!selectedProduct) return [];
 
-    // Extract meaningful keywords (3+ chars) from the product name
-    const stopWords = new Set(["the", "and", "per", "with", "for", "from", "pack", "each"]);
+    const stopWords = new Set(["the", "and", "per", "with", "for", "from", "pack", "each", "fresh", "organic", "free", "range"]);
     const keywords = selectedProduct.name
       .toLowerCase()
       .split(/[\s\-\/\(\),]+/)
@@ -55,12 +54,13 @@ const Index = () => {
 
     if (keywords.length === 0) return [];
 
-    // Find products that share at least one keyword AND are in the same category
+    // Use the longest keyword as the primary one (most specific)
+    const primaryKeyword = keywords.reduce((a, b) => (a.length >= b.length ? a : b));
+
     return products.filter((p) => {
       if (p.id === selectedProduct.id) return false;
-      if (p.category !== selectedProduct.category) return false;
-      const pWords = p.name.toLowerCase().split(/[\s\-\/\(\),]+/);
-      return keywords.some((kw) => pWords.some((pw) => pw.includes(kw) || kw.includes(pw)));
+      const pName = p.name.toLowerCase();
+      return pName.includes(primaryKeyword);
     });
   }, [selectedProduct, products]);
 

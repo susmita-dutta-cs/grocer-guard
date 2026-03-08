@@ -4,6 +4,7 @@ import heroImage from "@/assets/hero-groceries.png";
 import SearchBar from "@/components/SearchBar";
 import CategoryFilter from "@/components/CategoryFilter";
 import ProductCard from "@/components/ProductCard";
+import ProductDetail from "@/components/ProductDetail";
 import StatsBar from "@/components/StatsBar";
 import RecommendationRow from "@/components/RecommendationRow";
 import SmartBasket from "@/components/SmartBasket";
@@ -16,11 +17,13 @@ import { useRecommendations } from "@/hooks/useRecommendations";
 import { useI18n, categoryKeyMap } from "@/hooks/useI18n";
 import { useProductName } from "@/hooks/useProductName";
 import { useFavorites } from "@/hooks/useFavorites";
+import type { Product } from "@/data/groceryData";
 
 const Index = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [activeTab, setActiveTab] = useState("home");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { products } = useGroceryData();
   const { t, language } = useI18n();
   const { getProductName } = useProductName();
@@ -38,6 +41,27 @@ const Index = () => {
       return matchesSearch && matchesCategory;
     });
   }, [search, category, products, language, getProductName]);
+
+  // Find related products (same category) for the selected product
+  const relatedProducts = useMemo(() => {
+    if (!selectedProduct) return [];
+    return products.filter(
+      (p) => p.id !== selectedProduct.id && p.category === selectedProduct.category
+    );
+  }, [selectedProduct, products]);
+
+  // Group filtered products by base name (strip brand) for the search list
+  // Show a simplified card that invites drill-down
+  const handleProductSelect = (product: Product) => {
+    trackView(product.id);
+    setSelectedProduct(product);
+  };
+
+  // Reset selection when switching tabs
+  const handleNavigate = (tab: string) => {
+    setActiveTab(tab);
+    setSelectedProduct(null);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -83,25 +107,41 @@ const Index = () => {
               )}
               <PromotionsSection />
             </section>
-
           </>
         )}
 
         {activeTab === "search" && (
-          <div className="space-y-4">
-            <SearchBar value={search} onChange={setSearch} />
-            <CategoryFilter selected={category} onSelect={setCategory} />
-            <div className="space-y-3">
-              {filtered.slice(0, 50).map((product, i) => (
-                <ProductCard key={product.id} product={product} index={i} onView={() => trackView(product.id)} isFavorite={isFavorite(product.id)} onToggleFavorite={() => toggleFavorite(product.id)} />
-              ))}
-              {filtered.length > 50 && (
-                <p className="text-center text-xs text-muted-foreground py-4">
-                  Showing 50 of {filtered.length} — refine your search
-                </p>
-              )}
+          selectedProduct ? (
+            <ProductDetail
+              product={selectedProduct}
+              relatedProducts={relatedProducts}
+              onBack={() => setSelectedProduct(null)}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
+            />
+          ) : (
+            <div className="space-y-4">
+              <SearchBar value={search} onChange={setSearch} />
+              <CategoryFilter selected={category} onSelect={setCategory} />
+              <div className="space-y-3">
+                {filtered.slice(0, 50).map((product, i) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={i}
+                    onView={() => handleProductSelect(product)}
+                    isFavorite={isFavorite(product.id)}
+                    onToggleFavorite={() => toggleFavorite(product.id)}
+                  />
+                ))}
+                {filtered.length > 50 && (
+                  <p className="text-center text-xs text-muted-foreground py-4">
+                    Showing 50 of {filtered.length} — refine your search
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )
         )}
 
         {activeTab === "favorites" && (
@@ -115,7 +155,7 @@ const Index = () => {
         {activeTab === "settings" && <SettingsPanel />}
       </main>
 
-      <BottomNav active={activeTab} onNavigate={setActiveTab} basketCount={basketIds.length} favoritesCount={favCount} />
+      <BottomNav active={activeTab} onNavigate={handleNavigate} basketCount={basketIds.length} favoritesCount={favCount} />
     </div>
   );
 };

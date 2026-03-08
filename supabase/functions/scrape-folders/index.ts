@@ -95,6 +95,26 @@ const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgia
 Only include food/grocery items. Skip non-food items like clothing, furniture, electronics, tools.
 Return ONLY the JSON array, no other text. If you can't find any promotions, return an empty array [].`;
 
+async function fetchScreenshotAsBase64(screenshotValue: string): Promise<string> {
+  // If it's already base64 or a data URL, return as-is
+  if (screenshotValue.startsWith("data:")) return screenshotValue;
+  if (!screenshotValue.startsWith("http")) return `data:image/png;base64,${screenshotValue}`;
+
+  // It's a URL - download and convert to base64
+  console.log("Downloading screenshot URL to convert to base64...");
+  const response = await fetch(screenshotValue);
+  if (!response.ok) throw new Error(`Failed to download screenshot: ${response.status}`);
+  const arrayBuffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+  console.log(`Screenshot downloaded: ${Math.round(base64.length / 1024)}KB base64`);
+  return `data:image/png;base64,${base64}`;
+}
+
 async function extractPromosWithVision(
   lovableApiKey: string,
   storeName: string,
@@ -106,7 +126,9 @@ async function extractPromosWithVision(
 
   // Build user message with both text and image if available
   if (scrapeResult.screenshot) {
-    // Use vision: send image + any available markdown context
+    // Convert screenshot to base64 data URL if it's a URL
+    const screenshotDataUrl = await fetchScreenshotAsBase64(scrapeResult.screenshot);
+
     const userContent: any[] = [];
 
     if (scrapeResult.markdown && scrapeResult.markdown.length > 100) {
@@ -123,11 +145,7 @@ async function extractPromosWithVision(
 
     userContent.push({
       type: "image_url",
-      image_url: {
-        url: scrapeResult.screenshot.startsWith("data:")
-          ? scrapeResult.screenshot
-          : `data:image/png;base64,${scrapeResult.screenshot}`,
-      },
+      image_url: { url: screenshotDataUrl },
     });
 
     messages.push({ role: "user", content: userContent });

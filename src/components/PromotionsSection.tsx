@@ -133,11 +133,25 @@ const PromotionsSection = () => {
             >
               <div className="flex items-start justify-between gap-1">
                 <span className="text-xl">{emoji}</span>
-                {promo.discount_type && (
-                  <span className="text-[9px] font-semibold bg-secondary/15 text-secondary px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                    {promo.discount_type}
-                  </span>
-                )}
+                <div className="flex items-center gap-1">
+                  {promo.discount_type && (
+                    <span className="text-[9px] font-semibold bg-secondary/15 text-secondary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      {promo.discount_type}
+                    </span>
+                  )}
+                  {promo.matched_product_id && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(promo.matched_product_id!); }}
+                      className="p-1 rounded-lg hover:bg-muted transition-colors"
+                    >
+                      <Heart
+                        className={`h-3.5 w-3.5 transition-colors ${
+                          isFavorite(promo.matched_product_id!) ? "fill-primary text-primary" : "text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="font-medium text-xs text-card-foreground leading-tight line-clamp-2">
                 {promo.product_name}

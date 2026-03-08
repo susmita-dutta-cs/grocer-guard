@@ -12,6 +12,7 @@ import SettingsPanel from "@/components/SettingsPanel";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useI18n, categoryKeyMap } from "@/hooks/useI18n";
+import { useProductName } from "@/hooks/useProductName";
 
 const Index = () => {
   const [search, setSearch] = useState("");

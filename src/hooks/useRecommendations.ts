@@ -1,5 +1,7 @@
-import { useMemo, useCallback, useState, useEffect } from "react";
-import { Product, products, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
+import { useMemo, useCallback, useState } from "react";
+import { Product, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
+import { useGroceryData } from "@/hooks/useGroceryData";
+import { useI18n } from "@/hooks/useI18n";
 
 // --- Types ---
 export type RecommendationReason =
@@ -43,9 +45,8 @@ function addToViewHistory(productId: string) {
 
 // --- Algorithms ---
 
-/** Best Value: products with the highest savings percentage */
-function getBestValuePicks(count = 4): Recommendation[] {
-  return products
+function getBestValuePicks(allProducts: Product[], count = 4): Recommendation[] {
+  return allProducts
     .map((p) => ({
       product: p,
       reason: "best_value" as const,
@@ -56,9 +57,8 @@ function getBestValuePicks(count = 4): Recommendation[] {
     .slice(0, count);
 }
 
-/** Smart Basket: given a list of product IDs, recommend cheapest store */
-function getSmartBasket(selectedIds: string[]): SmartBasketResult[] {
-  const selected = products.filter((p) => selectedIds.includes(p.id));
+function getSmartBasket(allProducts: Product[], selectedIds: string[]): SmartBasketResult[] {
+  const selected = allProducts.filter((p) => selectedIds.includes(p.id));
   if (selected.length === 0) return [];
 
   return stores
@@ -83,9 +83,8 @@ function getSmartBasket(selectedIds: string[]): SmartBasketResult[] {
     .sort((a, b) => a.totalCost - b.totalCost);
 }
 
-/** Deals & Trending: products currently on sale, sorted by deal strength */
-function getDealsAndTrending(count = 4): Recommendation[] {
-  const onSaleProducts = products.filter((p) =>
+function getDealsAndTrending(allProducts: Product[], count = 4): Recommendation[] {
+  const onSaleProducts = allProducts.filter((p) =>
     p.prices.some((pp) => pp.onSale)
   );
 
@@ -106,33 +105,29 @@ function getDealsAndTrending(count = 4): Recommendation[] {
     .slice(0, count);
 }
 
-/** Personalized: based on browsing history, recommend related category items */
-function getPersonalized(count = 4): Recommendation[] {
+function getPersonalized(allProducts: Product[], count = 4): Recommendation[] {
   const history = getViewHistory();
   if (history.length === 0) return [];
 
-  // Count category frequency from history
   const catFreq: Record<string, number> = {};
   history.forEach((id) => {
-    const p = products.find((pr) => pr.id === id);
+    const p = allProducts.find((pr) => pr.id === id);
     if (p) {
       catFreq[p.category] = (catFreq[p.category] || 0) + 1;
     }
   });
 
-  // Sort categories by frequency
   const topCats = Object.entries(catFreq)
     .sort(([, a], [, b]) => b - a)
     .map(([cat]) => cat);
 
-  // Find products in top categories not recently viewed
   const recentSet = new Set(history.slice(0, 5));
-  const recommendations = products
+  const recommendations = allProducts
     .filter((p) => topCats.includes(p.category) && !recentSet.has(p.id))
     .map((p) => ({
       product: p,
       reason: "personalized" as const,
-      label: `Because you viewed ${p.category}`,
+      label: p.category,
       score: (topCats.indexOf(p.category) + 1) * -1 + getSavingsPercent(p),
     }))
     .sort((a, b) => b.score - a.score)
@@ -143,6 +138,7 @@ function getPersonalized(count = 4): Recommendation[] {
 
 // --- Hook ---
 export function useRecommendations() {
+  const { products: allProducts } = useGroceryData();
   const [basketIds, setBasketIds] = useState<string[]>([]);
   const [historyVersion, setHistoryVersion] = useState(0);
 
@@ -159,10 +155,10 @@ export function useRecommendations() {
     );
   }, []);
 
-  const bestValue = useMemo(() => getBestValuePicks(4), []);
-  const deals = useMemo(() => getDealsAndTrending(4), []);
-  const personalized = useMemo(() => getPersonalized(4), [historyVersion]);
-  const smartBasket = useMemo(() => getSmartBasket(basketIds), [basketIds]);
+  const bestValue = useMemo(() => getBestValuePicks(allProducts, 4), [allProducts]);
+  const deals = useMemo(() => getDealsAndTrending(allProducts, 4), [allProducts]);
+  const personalized = useMemo(() => getPersonalized(allProducts, 4), [allProducts, historyVersion]);
+  const smartBasket = useMemo(() => getSmartBasket(allProducts, basketIds), [allProducts, basketIds]);
 
   return {
     bestValue,

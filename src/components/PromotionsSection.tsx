@@ -3,6 +3,14 @@ import { Newspaper, ChevronRight } from "lucide-react";
 import { usePromotions } from "@/hooks/usePromotions";
 import { stores } from "@/data/groceryData";
 
+// Normalize store_id from scraped data (hyphens) to app format (underscores)
+const findStore = (storeId: string) => {
+  return stores.find((s) => s.id === storeId) || 
+         stores.find((s) => s.id === storeId.replace(/-/g, "_")) ||
+         stores.find((s) => s.name.toLowerCase() === storeId.replace(/-/g, " ").toLowerCase());
+};
+const getStoreName = (storeId: string) => findStore(storeId)?.name || storeId;
+
 const categoryEmoji: Record<string, string> = {
   beverages: "🥤",
   dairy: "🥛",
@@ -66,7 +74,7 @@ const PromotionsSection = () => {
           All stores
         </button>
         {storeIds.map((sid) => {
-          const store = stores.find((s) => s.id === sid);
+          const store = findStore(sid);
           return (
             <button
               key={sid}
@@ -113,7 +121,7 @@ const PromotionsSection = () => {
 
       <div className="grid grid-cols-2 gap-2">
         {displayed.map((promo) => {
-          const store = stores.find((s) => s.id === promo.store_id);
+          const store = findStore(promo.store_id);
           const emoji = categoryEmoji[promo.category || "other"] || "🛒";
 
           return (

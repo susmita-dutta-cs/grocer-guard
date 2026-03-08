@@ -306,7 +306,6 @@ async function extractPromosWithVision(
     { role: "system", content: EXTRACTION_PROMPT },
   ];
 
-  // Build user message with both text and image if available
   if (scrapeResult.screenshot) {
     const imageUrl = getScreenshotUrl(scrapeResult.screenshot);
     const userContent: any[] = [];
@@ -330,7 +329,6 @@ async function extractPromosWithVision(
 
     messages.push({ role: "user", content: userContent });
   } else {
-    // Text-only extraction
     const truncated = (scrapeResult.markdown || "").substring(0, 15000);
     messages.push({
       role: "user",
@@ -366,7 +364,6 @@ async function extractPromosWithVision(
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "[]";
 
-  // Parse JSON from response (might be wrapped in ```json blocks)
   const jsonMatch = content.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
     console.log("No JSON array found in AI response for", storeName, "- response:", content.substring(0, 200));
@@ -377,6 +374,72 @@ async function extractPromosWithVision(
     return JSON.parse(jsonMatch[0]);
   } catch {
     console.error("Failed to parse AI response:", content.substring(0, 500));
+    return [];
+  }
+}
+
+// Extract promos from MULTIPLE page images in a single AI call
+async function extractPromosFromMultiplePages(
+  lovableApiKey: string,
+  storeName: string,
+  pageUrls: string[],
+  pageNumbers: number[]
+): Promise<any[]> {
+  const userContent: any[] = [
+    {
+      type: "text",
+      text: `Extract ALL grocery promotions from these ${pageUrls.length} pages of the ${storeName} weekly folder (pages ${pageNumbers.join(", ")}). Look carefully at EVERY product on EVERY page.`,
+    },
+  ];
+
+  for (const url of pageUrls) {
+    userContent.push({
+      type: "image_url",
+      image_url: { url },
+    });
+  }
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-pro",
+      messages: [
+        { role: "system", content: EXTRACTION_PROMPT },
+        { role: "user", content: userContent },
+      ],
+      temperature: 0.1,
+      max_tokens: 16000,
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
+    if (response.status === 402) {
+      throw new Error("AI credits exhausted. Please add funds to your workspace.");
+    }
+    const err = await response.text();
+    throw new Error(`AI extraction failed [${response.status}]: ${err}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || "[]";
+
+  const jsonMatch = content.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    console.log("No JSON found for pages", pageNumbers.join(","), "- response:", content.substring(0, 200));
+    return [];
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    console.error("Failed to parse multi-page response:", content.substring(0, 500));
     return [];
   }
 }

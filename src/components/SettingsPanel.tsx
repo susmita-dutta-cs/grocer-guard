@@ -29,6 +29,7 @@ type StoreConfig = {
 const SettingsPanel = () => {
   const { t, language, setLanguage } = useI18n();
   const { user, isAdmin, signOut } = useAuth();
+  const { products } = useGroceryData();
   const navigate = useNavigate();
 
   const [configs, setConfigs] = useState<StoreConfig[]>([]);

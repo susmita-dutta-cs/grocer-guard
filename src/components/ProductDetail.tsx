@@ -165,15 +165,53 @@ const ProductDetail = ({
                 {group.brands.map((bp) => {
                   const barWidth = Math.max(25, (bp.price / globalMax) * 100);
                   const isLowest = bp.price === group.cheapest;
+                  const isHome = isHomeBrandForStore(bp.brand, group.storeId);
 
                   return (
-                    <div key={bp.productId} className="flex items-center gap-2">
-                      <span className="text-[10px] font-medium w-20 text-muted-foreground truncate">
-                        {bp.brand}
-                      </span>
-                      <div className="flex-1 h-6 bg-muted/50 rounded-lg overflow-hidden relative">
-                        <div
-                          className={`h-full rounded-lg transition-all duration-500 ${storeColorMap[group.storeId]} ${
+                    <div key={bp.productId} className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 flex items-center gap-1">
+                          <span className="text-[10px] font-medium text-muted-foreground truncate">
+                            {bp.brand}
+                          </span>
+                          {isHome && (
+                            <span className="shrink-0 text-[7px] font-bold bg-accent text-accent-foreground px-1 py-0.5 rounded-full">
+                              🏠
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 h-6 bg-muted/50 rounded-lg overflow-hidden relative">
+                          <div
+                            className={`h-full rounded-lg transition-all duration-500 ${storeColorMap[group.storeId]} ${
+                              isLowest ? "opacity-90" : "opacity-30"
+                            }`}
+                            style={{ width: `${barWidth}%` }}
+                          />
+                          <span
+                            className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
+                              isLowest ? "text-foreground" : "text-muted-foreground"
+                            }`}
+                          >
+                            €{bp.price.toFixed(2)}
+                            {bp.onSale && (
+                              <span className="ml-1 text-primary font-normal text-[9px]">
+                                {t("product.sale")}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => onToggleFavorite(bp.productId)}
+                          className="p-1 rounded-lg hover:bg-muted transition-colors"
+                        >
+                          <Heart
+                            className={`h-3.5 w-3.5 transition-colors ${
+                              isFavorite(bp.productId) ? "fill-primary text-primary" : "text-muted-foreground"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
                             isLowest ? "opacity-90" : "opacity-30"
                           }`}
                           style={{ width: `${barWidth}%` }}

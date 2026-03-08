@@ -409,6 +409,8 @@ Deno.serve(async (req) => {
         const inserts = matchedPromos.map((p: any) => ({
           store_id: sid,
           product_name: p.product_name || "Unknown",
+          brand: p.brand || null,
+          quantity: p.quantity || null,
           discount_type: p.discount_type || null,
           promo_price: p.promo_price || null,
           original_price: p.original_price || null,

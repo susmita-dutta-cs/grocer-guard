@@ -192,39 +192,6 @@ const Index = () => {
           )
         )}
 
-        {activeTab === "search" && (
-          selectedProduct ? (
-            <ProductDetail
-              product={selectedProduct}
-              relatedProducts={relatedProducts}
-              onBack={() => setSelectedProduct(null)}
-              isFavorite={isFavorite}
-              onToggleFavorite={toggleFavorite}
-            />
-          ) : (
-            <div className="space-y-4">
-              <SearchBar value={search} onChange={setSearch} />
-              <CategoryFilter selected={category} onSelect={setCategory} />
-              <div className="space-y-3">
-                {filtered.slice(0, 50).map((product, i) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    index={i}
-                    onView={() => handleProductSelect(product)}
-                    isFavorite={isFavorite(product.id)}
-                    onToggleFavorite={() => toggleFavorite(product.id)}
-                  />
-                ))}
-                {filtered.length > 50 && (
-                  <p className="text-center text-xs text-muted-foreground py-4">
-                    Showing 50 of {filtered.length} — refine your search
-                  </p>
-                )}
-              </div>
-            </div>
-          )
-        )}
 
         {activeTab === "basket" && (
           <div className="space-y-6">

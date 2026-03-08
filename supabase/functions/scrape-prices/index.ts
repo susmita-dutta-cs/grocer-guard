@@ -23,10 +23,12 @@ const PRODUCT_SEARCHES = [
 ];
 
 const STORES = [
-  { id: "walmart", name: "Walmart", searchSuffix: "walmart.com price" },
-  { id: "kroger", name: "Kroger", searchSuffix: "kroger.com price" },
-  { id: "target", name: "Target", searchSuffix: "target.com price" },
-  { id: "aldi", name: "Aldi", searchSuffix: "aldi.us price" },
+  { id: "aldi", name: "Aldi", searchSuffix: "aldi.be prix price" },
+  { id: "albert_heijn", name: "Albert Heijn", searchSuffix: "ah.nl prijs price" },
+  { id: "carrefour", name: "Carrefour", searchSuffix: "carrefour.be prix price" },
+  { id: "colruyt", name: "Colruyt", searchSuffix: "colruyt.be prix price" },
+  { id: "jumbo", name: "Jumbo", searchSuffix: "jumbo.com prijs price" },
+  { id: "lidl", name: "Lidl", searchSuffix: "lidl.be prix price" },
 ];
 
 function extractPrice(text: string): number | null {

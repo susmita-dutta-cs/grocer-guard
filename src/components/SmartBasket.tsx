@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { SmartBasketResult } from "@/hooks/useRecommendations";
 import { useGroceryData } from "@/hooks/useGroceryData";
-import { ShoppingCart, Check, Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, Check, Plus, ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import { useProductName } from "@/hooks/useProductName";
 
@@ -34,10 +34,24 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
   const { products } = useGroceryData();
   const { getProductName } = useProductName();
   const [expandedStore, setExpandedStore] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const toggleExpand = (storeId: string) => {
     setExpandedStore((prev) => (prev === storeId ? null : storeId));
   };
+
+  const searchResults = useMemo(() => {
+    if (!search.trim()) return [];
+    const q = search.toLowerCase();
+    return products
+      .filter((p) => {
+        const name = getProductName(p).toLowerCase();
+        return name.includes(q) || p.name.toLowerCase().includes(q) || (p.brand && p.brand.toLowerCase().includes(q));
+      })
+      .slice(0, 8);
+  }, [search, products, getProductName]);
+
+  const basketProducts = products.filter((p) => basketIds.includes(p.id));
 
   return (
     <div className="space-y-4">
@@ -47,26 +61,67 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
       </div>
       <p className="text-xs text-muted-foreground">{t("basket.description")}</p>
 
-      <div className="flex flex-wrap gap-2">
-        {products.map((p) => {
-          const inBasket = basketIds.includes(p.id);
-          return (
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search products to add..."
+          className="w-full pl-9 pr-9 py-2.5 text-sm rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Search results dropdown */}
+      {search.trim() && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+          {searchResults.length === 0 ? (
+            <p className="text-xs text-muted-foreground p-3 text-center">No products found</p>
+          ) : (
+            searchResults.map((p) => {
+              const inBasket = basketIds.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => { onToggle(p.id); setSearch(""); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-border/50 last:border-b-0 hover:bg-muted/50 transition-colors"
+                >
+                  <span className="text-lg">{p.image}</span>
+                  <span className="flex-1 text-xs font-medium text-foreground truncate">{getProductName(p)}</span>
+                  {inBasket ? (
+                    <Check className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Selected items */}
+      {basketProducts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {basketProducts.map((p) => (
             <button
               key={p.id}
               onClick={() => onToggle(p.id)}
-              className={`flex items-center gap-1.5 text-[11px] px-3 py-2 rounded-xl border transition-all active:scale-95 ${
-                inBasket
-                  ? "bg-primary/15 text-primary border-primary/30"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/20"
-              }`}
+              className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/30 transition-all active:scale-95"
             >
-              {inBasket ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
               <span>{p.image}</span>
               {getProductName(p)}
+              <X className="h-3 w-3 ml-0.5" />
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {results.length > 0 && (
         <div className="space-y-2 pt-3 border-t border-border">

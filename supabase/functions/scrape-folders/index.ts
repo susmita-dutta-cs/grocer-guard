@@ -542,35 +542,28 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Process pages in batches of 2 to avoid rate limits (more pages now)
-          const batchSize = 2;
-          for (let i = 0; i < pageUrls.length; i += batchSize) {
-            const batch = pageUrls.slice(i, i + batchSize);
-            const batchPromises = batch.map(async (pageUrl, idx) => {
-              const pageNum = i + idx + 1;
-              try {
-                console.log(`Processing Issuu page ${pageNum} (${pageUrl})...`);
-                const pagePromos = await extractPromosWithVision(
-                  lovableApiKey,
-                  `colruyt (folder page ${pageNum})`,
-                  { screenshot: pageUrl }
-                );
-                console.log(`Page ${pageNum}: extracted ${pagePromos.length} promos`);
-                return pagePromos;
-              } catch (e) {
-                console.error(`Error on page ${pageNum}:`, e);
-                return [];
-              }
-            });
-
-            const batchResults = await Promise.all(batchPromises);
-            for (const promos of batchResults) {
-              allPromos.push(...promos);
+          // Process 4 page images per single AI call to reduce total calls
+          const pagesPerCall = 4;
+          for (let i = 0; i < pageUrls.length; i += pagesPerCall) {
+            const batchUrls = pageUrls.slice(i, i + pagesPerCall);
+            const pageNumbers = batchUrls.map((_, idx) => i + idx + 2);
+            try {
+              console.log(`Processing Issuu pages ${pageNumbers.join(",")}...`);
+              const batchPromos = await extractPromosFromMultiplePages(
+                lovableApiKey,
+                "Colruyt",
+                batchUrls,
+                pageNumbers
+              );
+              console.log(`Pages ${pageNumbers.join(",")}: extracted ${batchPromos.length} promos`);
+              allPromos.push(...batchPromos);
+            } catch (e) {
+              console.error(`Error on pages ${pageNumbers.join(",")}:`, e);
             }
 
-            // Rate limit between batches - slightly longer pause
-            if (i + batchSize < pageUrls.length) {
-              await new Promise((r) => setTimeout(r, 1500));
+            // Rate limit between calls
+            if (i + pagesPerCall < pageUrls.length) {
+              await new Promise((r) => setTimeout(r, 2000));
             }
           }
 

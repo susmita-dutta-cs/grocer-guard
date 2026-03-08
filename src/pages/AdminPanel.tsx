@@ -46,6 +46,20 @@ interface FolderProgress {
   results: Record<string, FolderScrapeResult>;
 }
 
+interface Promotion {
+  id: string;
+  product_name: string;
+  brand: string | null;
+  store_id: string;
+  original_price: number | null;
+  promo_price: number | null;
+  quantity: string | null;
+  discount_type: string | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  scraped_at: string;
+}
+
 const AdminPanel = () => {
   const { user, isAdmin, loading } = useAuth();
   const { t } = useI18n();

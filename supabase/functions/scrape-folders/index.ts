@@ -526,7 +526,7 @@ Deno.serve(async (req) => {
         }
 
         // Step 3: Match to existing products
-        const matchedPromos = await matchProducts(supabase, promos);
+        const matchedPromos = await matchProducts(supabase, allPromos);
 
         // Step 4: Clear old promotions for this store and insert new ones
         await supabase

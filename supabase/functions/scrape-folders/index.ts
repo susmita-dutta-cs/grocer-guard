@@ -99,7 +99,7 @@ async function scrapeStore(
 
     // Step 2: Scrape the main page + top promo pages
     const urlsToScrape = [config.url, ...promoLinks.filter((l: string) => l !== config.url)].slice(0, 3);
-    const allMarkdown: string[] = [];
+    const allResults: ScrapeResult[] = [];
 
     for (const pageUrl of urlsToScrape) {
       try {
@@ -111,27 +111,29 @@ async function scrapeStore(
           },
           body: JSON.stringify({
             url: pageUrl,
-            formats: ["markdown"],
+            formats: ["markdown", "screenshot"],
             onlyMainContent: true,
             waitFor: config.waitFor || 3000,
           }),
         });
         const scrapeData = await scrapeRes.json();
         const md = scrapeData.data?.markdown || scrapeData.markdown || "";
-        if (md.length > 50) {
-          allMarkdown.push(`--- Page: ${pageUrl} ---\n${md}`);
-          console.log(`Scraped ${pageUrl}: ${md.length} chars`);
+        const ss = scrapeData.data?.screenshot || scrapeData.screenshot || undefined;
+        console.log(`Scraped ${pageUrl}: ${md.length} chars${ss ? `, screenshot` : ""}`);
+        if (md.length > 50 || ss) {
+          allResults.push({ markdown: md, screenshot: ss });
         }
       } catch (e) {
         console.error(`Failed to scrape ${pageUrl}:`, e);
       }
-      // Small delay between requests
       await new Promise((r) => setTimeout(r, 500));
     }
 
-    const combinedMarkdown = allMarkdown.join("\n\n");
-    console.log(`Crawl finished: ${urlsToScrape.length} pages, ${combinedMarkdown.length} total chars`);
-    return { markdown: combinedMarkdown };
+    // Combine all markdown, use the first available screenshot
+    const combinedMarkdown = allResults.map((r, i) => r.markdown || "").join("\n\n---PAGE---\n\n");
+    const firstScreenshot = allResults.find(r => r.screenshot)?.screenshot;
+    console.log(`Crawl finished: ${urlsToScrape.length} pages, ${combinedMarkdown.length} total chars${firstScreenshot ? ", has screenshot" : ""}`);
+    return { markdown: combinedMarkdown, screenshot: firstScreenshot };
   }
 
   // For both "scrape" and "screenshot" methods, use Firecrawl scrape

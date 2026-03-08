@@ -14,6 +14,15 @@ const storeColorMap: Record<string, string> = {
   lidl: "bg-store-6",
 };
 
+const storeHomeBrands: Record<string, string[]> = {
+  aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
+  albert_heijn: ["AH", "Albert Heijn", "AH Basic", "AH Excellent", "AH Terra"],
+  carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Carrefour Extra"],
+  colruyt: ["Boni", "Boni Selection", "Everyday", "Spar"],
+  jumbo: ["Jumbo", "Jumbo Biologisch"],
+  lidl: ["Lidl", "Milbona", "Cien", "Deluxe", "Silvercrest", "Perlenbacher", "Freeway", "Solevita"],
+};
+
 interface SmartBasketProps {
   basketIds: string[];
   results: SmartBasketResult[];

@@ -112,7 +112,7 @@ async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): P
 
   // Generate JPG page image URLs (skip cover page 1)
   const pageUrls: string[] = [];
-  const maxPages = Math.min(totalPages, 28);
+  const maxPages = Math.min(totalPages, 13); // Limit to 12 content pages to fit in timeout
   for (let i = 2; i <= maxPages; i++) {
     pageUrls.push(`https://image.issuu.com/${svgHash}/jpg/page_${i}.jpg`);
   }

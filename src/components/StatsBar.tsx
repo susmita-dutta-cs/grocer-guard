@@ -17,12 +17,12 @@ const StatsBar = () => {
     {
       icon: TrendingDown,
       label: "Avg. Savings",
-      value: `$${avgSaving.toFixed(2)}`,
+      value: `€${avgSaving.toFixed(2)}`,
     },
     {
-      icon: DollarSign,
+      icon: Euro,
       label: "Total Potential Savings",
-      value: `$${totalSavings.toFixed(2)}`,
+      value: `€${totalSavings.toFixed(2)}`,
     },
   ];
 

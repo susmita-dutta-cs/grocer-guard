@@ -110,12 +110,10 @@ async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): P
   const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 24;
   console.log(`Total pages: ${totalPages}`);
 
-  // Generate JPG page image URLs for ALL pages (including cover for completeness)
-  // Issuu serves high-quality JPG images that work much better with vision AI
+  // Generate JPG page image URLs (skip cover page 1)
   const pageUrls: string[] = [];
-  const maxPages = Math.min(totalPages, 30); // Process up to 30 pages
-  for (let i = 1; i <= maxPages; i++) {
-    // Use Issuu's image CDN which provides actual raster images
+  const maxPages = Math.min(totalPages, 13); // Limit to 12 content pages to fit in timeout
+  for (let i = 2; i <= maxPages; i++) {
     pageUrls.push(`https://image.issuu.com/${svgHash}/jpg/page_${i}.jpg`);
   }
 
@@ -308,7 +306,6 @@ async function extractPromosWithVision(
     { role: "system", content: EXTRACTION_PROMPT },
   ];
 
-  // Build user message with both text and image if available
   if (scrapeResult.screenshot) {
     const imageUrl = getScreenshotUrl(scrapeResult.screenshot);
     const userContent: any[] = [];
@@ -332,7 +329,6 @@ async function extractPromosWithVision(
 
     messages.push({ role: "user", content: userContent });
   } else {
-    // Text-only extraction
     const truncated = (scrapeResult.markdown || "").substring(0, 15000);
     messages.push({
       role: "user",
@@ -368,7 +364,6 @@ async function extractPromosWithVision(
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || "[]";
 
-  // Parse JSON from response (might be wrapped in ```json blocks)
   const jsonMatch = content.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
     console.log("No JSON array found in AI response for", storeName, "- response:", content.substring(0, 200));
@@ -379,6 +374,72 @@ async function extractPromosWithVision(
     return JSON.parse(jsonMatch[0]);
   } catch {
     console.error("Failed to parse AI response:", content.substring(0, 500));
+    return [];
+  }
+}
+
+// Extract promos from MULTIPLE page images in a single AI call
+async function extractPromosFromMultiplePages(
+  lovableApiKey: string,
+  storeName: string,
+  pageUrls: string[],
+  pageNumbers: number[]
+): Promise<any[]> {
+  const userContent: any[] = [
+    {
+      type: "text",
+      text: `Extract ALL grocery promotions from these ${pageUrls.length} pages of the ${storeName} weekly folder (pages ${pageNumbers.join(", ")}). Look carefully at EVERY product on EVERY page.`,
+    },
+  ];
+
+  for (const url of pageUrls) {
+    userContent.push({
+      type: "image_url",
+      image_url: { url },
+    });
+  }
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-pro",
+      messages: [
+        { role: "system", content: EXTRACTION_PROMPT },
+        { role: "user", content: userContent },
+      ],
+      temperature: 0.1,
+      max_tokens: 16000,
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
+    if (response.status === 402) {
+      throw new Error("AI credits exhausted. Please add funds to your workspace.");
+    }
+    const err = await response.text();
+    throw new Error(`AI extraction failed [${response.status}]: ${err}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || "[]";
+
+  const jsonMatch = content.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) {
+    console.log("No JSON found for pages", pageNumbers.join(","), "- response:", content.substring(0, 200));
+    return [];
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    console.error("Failed to parse multi-page response:", content.substring(0, 500));
     return [];
   }
 }
@@ -472,7 +533,7 @@ Deno.serve(async (req) => {
         let allPromos: any[] = [];
 
         if (config.method === "issuu") {
-          // Issuu flipbook: extract page image URLs and process each with vision
+          // Issuu flipbook: extract page image URLs and process with vision
           const pageUrls = await extractIssuuPages(firecrawlKey, config.url);
           console.log(`Found ${pageUrls.length} Issuu pages for ${sid}`);
 
@@ -481,39 +542,69 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Process pages in batches of 2 to avoid rate limits (more pages now)
-          const batchSize = 2;
-          for (let i = 0; i < pageUrls.length; i += batchSize) {
-            const batch = pageUrls.slice(i, i + batchSize);
-            const batchPromises = batch.map(async (pageUrl, idx) => {
-              const pageNum = i + idx + 1;
-              try {
-                console.log(`Processing Issuu page ${pageNum} (${pageUrl})...`);
-                const pagePromos = await extractPromosWithVision(
-                  lovableApiKey,
-                  `colruyt (folder page ${pageNum})`,
-                  { screenshot: pageUrl }
-                );
-                console.log(`Page ${pageNum}: extracted ${pagePromos.length} promos`);
-                return pagePromos;
-              } catch (e) {
-                console.error(`Error on page ${pageNum}:`, e);
-                return [];
-              }
-            });
+          // Clear old promotions FIRST so partial results are saved even on timeout
+          await supabase.from("weekly_promotions").delete().eq("store_id", sid);
 
-            const batchResults = await Promise.all(batchPromises);
-            for (const promos of batchResults) {
-              allPromos.push(...promos);
+          const now = new Date();
+          const validFrom = new Date(now);
+          validFrom.setDate(validFrom.getDate() - validFrom.getDay() + 1);
+          const validUntil = new Date(validFrom);
+          validUntil.setDate(validUntil.getDate() + 6);
+
+          let totalInserted = 0;
+
+          // Process 4 page images per single AI call
+          const pagesPerCall = 4;
+          for (let i = 0; i < pageUrls.length; i += pagesPerCall) {
+            const batchUrls = pageUrls.slice(i, i + pagesPerCall);
+            const pageNumbers = batchUrls.map((_, idx) => i + idx + 2);
+            try {
+              console.log(`Processing Issuu pages ${pageNumbers.join(",")}...`);
+              const batchPromos = await extractPromosFromMultiplePages(
+                lovableApiKey,
+                "Colruyt",
+                batchUrls,
+                pageNumbers
+              );
+              console.log(`Pages ${pageNumbers.join(",")}: extracted ${batchPromos.length} promos`);
+
+              if (batchPromos.length > 0) {
+                // Match and save immediately
+                const matched = await matchProducts(supabase, batchPromos);
+                const inserts = matched.map((p: any) => ({
+                  store_id: sid,
+                  product_name: p.product_name || "Unknown",
+                  brand: p.brand || null,
+                  quantity: p.quantity || null,
+                  discount_type: p.discount_type || null,
+                  promo_price: p.promo_price || null,
+                  original_price: p.original_price || null,
+                  valid_from: p.valid_from || validFrom.toISOString().split("T")[0],
+                  valid_until: p.valid_until || validUntil.toISOString().split("T")[0],
+                  category: p.category || null,
+                  matched_product_id: p.matched_product_id || null,
+                  source_url: config.url,
+                }));
+                await supabase.from("weekly_promotions").insert(inserts);
+                totalInserted += inserts.length;
+                allPromos.push(...batchPromos);
+                console.log(`Saved ${inserts.length} promos (total: ${totalInserted})`);
+              }
+            } catch (e) {
+              console.error(`Error on pages ${pageNumbers.join(",")}:`, e);
             }
 
-            // Rate limit between batches - slightly longer pause
-            if (i + batchSize < pageUrls.length) {
+            // Rate limit between calls
+            if (i + pagesPerCall < pageUrls.length) {
               await new Promise((r) => setTimeout(r, 1500));
             }
           }
 
-          console.log(`Total promos extracted from Issuu: ${allPromos.length}`);
+          const matchedCount = allPromos.filter((p: any) => p.matched_product_id).length;
+          results[sid] = { promotions: allPromos.length, matched: matchedCount, method: config.method };
+          console.log(`${sid}: ${allPromos.length} total promos, ${matchedCount} matched`);
+          // Skip the normal insert flow below since we already saved
+          continue;
         } else {
           // Standard scrape/screenshot flow
           const scrapeResult = await scrapeStore(firecrawlKey, sid);

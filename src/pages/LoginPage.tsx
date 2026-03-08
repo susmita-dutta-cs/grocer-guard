@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useI18n } from "@/hooks/useI18n";
-import { ShoppingBasket, Mail, Lock, LogIn, UserPlus } from "lucide-react";
+import { ShoppingBasket, Mail, Lock, LogIn, UserPlus, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const { signIn, signUp } = useAuth();
-  const { t } = useI18n();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [identifier, setIdentifier] = useState(""); // email or phone for login
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,14 +23,14 @@ const LoginPage = () => {
 
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password);
+        const { error } = await signUp(email, password, phone || undefined);
         if (error) {
           setError(error.message);
         } else {
           setSuccess("Check your email to confirm your account!");
         }
       } else {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(identifier, password);
         if (error) {
           setError(error.message);
         } else {
@@ -60,17 +60,45 @@ const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-3">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
-              />
-            </div>
+            {isSignUp ? (
+              <>
+                {/* Signup: separate email and phone fields */}
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="tel"
+                    placeholder="Phone number (optional)"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                  />
+                </div>
+              </>
+            ) : (
+              /* Login: single field for email or phone */
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Email or phone number"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                />
+              </div>
+            )}
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input

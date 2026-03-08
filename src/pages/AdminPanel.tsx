@@ -368,6 +368,93 @@ const AdminPanel = () => {
           )}
         </div>
 
+        {/* Folder Scraping Section */}
+        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+              <Newspaper className={`h-4 w-4 text-primary ${isFolderRunning ? "animate-pulse" : ""}`} />
+              Weekly Folder Promotions
+            </h2>
+            <button
+              onClick={() => startFolderScrape()}
+              disabled={isFolderRunning || isRunning}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-40 transition-opacity"
+            >
+              {isFolderRunning ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Scraping Folders...
+                </>
+              ) : (
+                <>
+                  <Newspaper className="h-3.5 w-3.5" />
+                  Scrape All Folders
+                </>
+              )}
+            </button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Scrape weekly promotional folders from each store. Uses AI to extract discount items and match them to your product catalog.
+          </p>
+
+          {/* Per-store folder buttons */}
+          <div className="flex flex-wrap gap-2">
+            {stores.map((store) => (
+              <button
+                key={store.id}
+                onClick={() => startFolderScrape(store.id)}
+                disabled={isFolderRunning || isRunning}
+                className="text-[11px] px-3 py-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:bg-accent/10 hover:text-accent-foreground hover:border-accent/30 disabled:opacity-40 transition-all"
+              >
+                📰 {store.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Folder Progress */}
+          {folderProgress.status !== "idle" && (
+            <div className="mt-3 p-3 rounded-xl bg-muted/50 space-y-2">
+              <div className="flex items-center gap-2">
+                {folderProgress.status === "running" && (
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                )}
+                {folderProgress.status === "done" && (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                )}
+                {folderProgress.status === "error" && (
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                )}
+                <span className="text-xs font-medium text-foreground">
+                  {folderProgress.status === "running"
+                    ? "Scraping folders & extracting promotions with AI..."
+                    : folderProgress.status === "done"
+                    ? "Folder scraping complete"
+                    : "Folder scraping finished with errors"}
+                </span>
+              </div>
+
+              {Object.keys(folderProgress.results).length > 0 && (
+                <div className="text-[11px] space-y-1">
+                  {Object.entries(folderProgress.results).map(([sid, result]) => (
+                    <div key={sid} className="flex items-center gap-2">
+                      <span className="font-medium text-foreground w-24">
+                        {stores.find(s => s.id === sid)?.name || sid}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {result.promotions} promos, {result.matched} matched
+                      </span>
+                      {result.error && (
+                        <span className="text-destructive">⚠ {result.error}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <p className="text-xs text-muted-foreground">
           Edit prices below. Changed cells are highlighted. Click Save to apply all changes.
         </p>

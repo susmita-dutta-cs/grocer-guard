@@ -11,9 +11,33 @@ export function useGroceryData() {
         .from("products")
         .select("*");
 
-      const { data: dbPrices, error: priceErr } = await supabase
-        .from("product_prices")
-        .select("*");
+      // Fetch all prices in batches to avoid the 1000-row default limit
+      let allPrices: any[] = [];
+      let priceErr: any = null;
+      const batchSize = 1000;
+      let offset = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batch, error } = await supabase
+          .from("product_prices")
+          .select("*")
+          .range(offset, offset + batchSize - 1);
+
+        if (error) {
+          priceErr = error;
+          break;
+        }
+        if (batch && batch.length > 0) {
+          allPrices = allPrices.concat(batch);
+          offset += batchSize;
+          hasMore = batch.length === batchSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      const dbPrices = allPrices;
 
       // If DB has data, use it
       if (!prodErr && !priceErr && dbProducts && dbProducts.length > 0 && dbPrices && dbPrices.length > 0) {

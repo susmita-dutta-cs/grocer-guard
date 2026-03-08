@@ -13,6 +13,20 @@ const storeColorMap: Record<string, string> = {
   lidl: "bg-store-6",
 };
 
+const storeHomeBrands: Record<string, string[]> = {
+  aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
+  albert_heijn: ["AH", "Albert Heijn", "AH Basic", "AH Excellent", "AH Terra"],
+  carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Simpl"],
+  colruyt: ["Boni", "Everyday", "Spar"],
+  jumbo: ["Jumbo"],
+  lidl: ["Lidl", "Milbona", "Cien", "Silvercrest", "Parkside", "Perlenbacher", "Pilos"],
+};
+
+function isHomeBrandForStore(brand: string, storeId: string): boolean {
+  const brands = storeHomeBrands[storeId] || [];
+  return brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()));
+}
+
 interface ProductDetailProps {
   product: Product;
   relatedProducts: Product[];
@@ -50,7 +64,6 @@ const ProductDetail = ({
     [product, relatedProducts]
   );
 
-  // Group by store: for each store, collect all brand prices
   const storeGroups: StoreGroup[] = useMemo(() => {
     const map = new Map<string, BrandPrice[]>();
 
@@ -82,7 +95,6 @@ const ProductDetail = ({
     return groups.sort((a, b) => a.cheapest - b.cheapest);
   }, [allVariants, getProductName]);
 
-  // Global max price for bar scaling
   const globalMax = useMemo(() => {
     let max = 0;
     for (const g of storeGroups) {
@@ -92,8 +104,6 @@ const ProductDetail = ({
     }
     return max || 1;
   }, [storeGroups]);
-
-  const globalCheapest = storeGroups.length > 0 ? storeGroups[0].cheapest : 0;
 
   return (
     <div className="space-y-4 animate-fade-in-up">
@@ -151,12 +161,20 @@ const ProductDetail = ({
                 {group.brands.map((bp) => {
                   const barWidth = Math.max(25, (bp.price / globalMax) * 100);
                   const isLowest = bp.price === group.cheapest;
+                  const isHome = isHomeBrandForStore(bp.brand, group.storeId);
 
                   return (
                     <div key={bp.productId} className="flex items-center gap-2">
-                      <span className="text-[10px] font-medium w-20 text-muted-foreground truncate">
-                        {bp.brand}
-                      </span>
+                      <div className="w-20 flex items-center gap-1 min-w-0">
+                        <span className="text-[10px] font-medium text-muted-foreground truncate">
+                          {bp.brand}
+                        </span>
+                        {isHome && (
+                          <span className="shrink-0 text-[7px] font-bold bg-accent text-accent-foreground px-1 py-0.5 rounded-full">
+                            🏠
+                          </span>
+                        )}
+                      </div>
                       <div className="flex-1 h-6 bg-muted/50 rounded-lg overflow-hidden relative">
                         <div
                           className={`h-full rounded-lg transition-all duration-500 ${storeColorMap[group.storeId]} ${

@@ -7,8 +7,8 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (identifier: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, phone?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -65,18 +65,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const isPhone = (val: string) => /^\+?\d{7,15}$/.test(val.replace(/[\s\-()]/g, ""));
+
+  const signIn = async (identifier: string, password: string) => {
+    let email = identifier;
+
+    // If identifier looks like a phone number, resolve email via DB function
+    if (isPhone(identifier)) {
+      const normalized = identifier.replace(/[\s\-()]/g, "");
+      const { data, error: lookupError } = await supabase.rpc("get_email_by_phone", { _phone: normalized });
+      if (lookupError || !data) {
+        return { error: new Error("No account found with this phone number") };
+      }
+      email = data as string;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = async (email: string, password: string, phone?: string) => {
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: window.location.origin },
     });
-    return { error: error as Error | null };
+    if (error) return { error: error as Error | null };
+
+    // Store phone in profile if provided
+    if (phone && signUpData.user) {
+      const normalized = phone.replace(/[\s\-()]/g, "");
+      await supabase
+        .from("profiles")
+        .update({ phone: normalized })
+        .eq("user_id", signUpData.user.id);
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {

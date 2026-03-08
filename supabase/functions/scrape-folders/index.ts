@@ -98,7 +98,7 @@ async function scrapeStore(
     console.log(`Found ${allLinks.length} URLs, ${promoLinks.length} promo URLs for ${storeId}`);
 
     // Step 2: Scrape the main page + top promo pages
-    const urlsToScrape = [config.url, ...promoLinks.filter((l: string) => l !== config.url)].slice(0, 6);
+    const urlsToScrape = [config.url, ...promoLinks.filter((l: string) => l !== config.url)].slice(0, 3);
     const allMarkdown: string[] = [];
 
     for (const pageUrl of urlsToScrape) {

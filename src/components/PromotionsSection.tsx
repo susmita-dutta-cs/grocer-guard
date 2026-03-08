@@ -23,16 +23,23 @@ const categoryEmoji: Record<string, string> = {
 const PromotionsSection = () => {
   const { promotions, isLoading } = usePromotions();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
   if (isLoading || promotions.length === 0) return null;
 
-  // Get unique stores that have promotions
   const storeIds = [...new Set(promotions.map((p) => p.store_id))];
 
-  const filtered = selectedStore
+  const storeFiltered = selectedStore
     ? promotions.filter((p) => p.store_id === selectedStore)
     : promotions;
+
+  // Get unique categories from promotions
+  const categories = [...new Set(storeFiltered.map((p) => p.category || "other"))].sort();
+
+  const filtered = selectedCategory
+    ? storeFiltered.filter((p) => (p.category || "other") === selectedCategory)
+    : storeFiltered;
 
   const displayed = expanded ? filtered : filtered.slice(0, 6);
 

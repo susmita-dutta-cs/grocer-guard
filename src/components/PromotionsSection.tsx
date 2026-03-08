@@ -146,10 +146,10 @@ const PromotionsSection = () => {
                         toggleFavorite(promo.matched_product_id);
                       }
                     }}
-                    className={`p-1 rounded-lg transition-colors ${promo.matched_product_id ? "hover:bg-muted" : "opacity-30 cursor-default"}`}
+                    className={`p-1.5 rounded-lg transition-colors ${promo.matched_product_id ? "hover:bg-muted" : "opacity-40 cursor-default"}`}
                   >
                     <Heart
-                      className={`h-3.5 w-3.5 transition-colors ${
+                      className={`h-4 w-4 transition-colors ${
                         promo.matched_product_id && isFavorite(promo.matched_product_id) ? "fill-primary text-primary" : "text-muted-foreground"
                       }`}
                     />

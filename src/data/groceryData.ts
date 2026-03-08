@@ -20,10 +20,12 @@ export type Product = {
 };
 
 export const stores: Store[] = [
-  { id: "walmart", name: "Walmart", colorClass: "bg-store-1" },
-  { id: "kroger", name: "Kroger", colorClass: "bg-store-2" },
-  { id: "target", name: "Target", colorClass: "bg-store-3" },
-  { id: "aldi", name: "Aldi", colorClass: "bg-store-4" },
+  { id: "aldi", name: "Aldi", colorClass: "bg-store-1" },
+  { id: "albert_heijn", name: "Albert Heijn", colorClass: "bg-store-2" },
+  { id: "carrefour", name: "Carrefour", colorClass: "bg-store-3" },
+  { id: "colruyt", name: "Colruyt", colorClass: "bg-store-4" },
+  { id: "jumbo", name: "Jumbo", colorClass: "bg-store-5" },
+  { id: "lidl", name: "Lidl", colorClass: "bg-store-6" },
 ];
 
 export const categories = [

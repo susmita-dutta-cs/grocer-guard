@@ -61,6 +61,8 @@ export default {
           2: "hsl(var(--store-2))",
           3: "hsl(var(--store-3))",
           4: "hsl(var(--store-4))",
+          5: "hsl(var(--store-5))",
+          6: "hsl(var(--store-6))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

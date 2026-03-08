@@ -8,10 +8,12 @@ interface ProductCardProps {
 }
 
 const storeColorMap: Record<string, string> = {
-  walmart: "bg-store-1",
-  kroger: "bg-store-2",
-  target: "bg-store-3",
-  aldi: "bg-store-4",
+  aldi: "bg-store-1",
+  albert_heijn: "bg-store-2",
+  carrefour: "bg-store-3",
+  colruyt: "bg-store-4",
+  jumbo: "bg-store-5",
+  lidl: "bg-store-6",
 };
 
 const ProductCard = ({ product, index, onView }: ProductCardProps) => {

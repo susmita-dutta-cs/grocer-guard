@@ -23,30 +23,33 @@ const PRODUCT_SEARCHES = [
 ];
 
 const STORES = [
-  { id: "walmart", name: "Walmart", searchSuffix: "walmart.com price" },
-  { id: "kroger", name: "Kroger", searchSuffix: "kroger.com price" },
-  { id: "target", name: "Target", searchSuffix: "target.com price" },
-  { id: "aldi", name: "Aldi", searchSuffix: "aldi.us price" },
+  { id: "aldi", name: "Aldi", searchSuffix: "aldi.be prix price" },
+  { id: "albert_heijn", name: "Albert Heijn", searchSuffix: "ah.nl prijs price" },
+  { id: "carrefour", name: "Carrefour", searchSuffix: "carrefour.be prix price" },
+  { id: "colruyt", name: "Colruyt", searchSuffix: "colruyt.be prix price" },
+  { id: "jumbo", name: "Jumbo", searchSuffix: "jumbo.com prijs price" },
+  { id: "lidl", name: "Lidl", searchSuffix: "lidl.be prix price" },
 ];
 
 function extractPrice(text: string): number | null {
-  // Match price patterns like $3.49, $0.99, etc.
-  const priceRegex = /\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
+  // Match price patterns like €3.49, €0,99, $3.49, 3,49€, etc.
+  const priceRegex = /€\s?(\d{1,3}(?:[.,]\d{2})?)|(\d{1,3}(?:[.,]\d{2})?)\s?€|\$(\d{1,3}(?:[.,]\d{2})?)/g;
   const matches = [...text.matchAll(priceRegex)];
 
   if (matches.length === 0) return null;
 
-  // Filter reasonable grocery prices ($0.25 - $50)
+  // Filter reasonable grocery prices (€0.25 - €50)
   const prices = matches
-    .map((m) => parseFloat(m[1].replace(",", "")))
-    .filter((p) => p >= 0.25 && p <= 50);
+    .map((m) => {
+      const val = (m[1] || m[2] || m[3] || "").replace(",", ".");
+      return parseFloat(val);
+    })
+    .filter((p) => !isNaN(p) && p >= 0.25 && p <= 50);
 
   if (prices.length === 0) return null;
 
-  // Return the lowest reasonable price (most likely the actual product price)
   return Math.min(...prices);
 }
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

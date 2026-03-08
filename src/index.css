@@ -27,10 +27,12 @@
     --savings: 142 70% 40%;
     --savings-foreground: 0 0% 100%;
     --expensive: 0 70% 55%;
-    --store-1: 210 80% 50%;
-    --store-2: 25 90% 52%;
-    --store-3: 280 60% 50%;
-    --store-4: 350 70% 50%;
+    --store-1: 200 80% 45%;
+    --store-2: 210 85% 55%;
+    --store-3: 15 85% 50%;
+    --store-4: 145 60% 40%;
+    --store-5: 45 90% 50%;
+    --store-6: 210 70% 50%;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;

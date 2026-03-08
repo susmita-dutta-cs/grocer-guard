@@ -3,10 +3,12 @@ import { products } from "@/data/groceryData";
 import { ShoppingCart, Check, Plus } from "lucide-react";
 
 const storeColorMap: Record<string, string> = {
-  walmart: "bg-store-1",
-  kroger: "bg-store-2",
-  target: "bg-store-3",
-  aldi: "bg-store-4",
+  aldi: "bg-store-1",
+  albert_heijn: "bg-store-2",
+  carrefour: "bg-store-3",
+  colruyt: "bg-store-4",
+  jumbo: "bg-store-5",
+  lidl: "bg-store-6",
 };
 
 interface SmartBasketProps {
@@ -76,11 +78,11 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
                     isFirst ? "text-accent-foreground" : "text-muted-foreground"
                   }`}
                 >
-                  ${r.totalCost.toFixed(2)}
+                  €{r.totalCost.toFixed(2)}
                 </span>
                 {isFirst && r.savings > 0 && (
                   <span className="text-[10px] font-bold bg-savings text-savings-foreground px-2 py-0.5 rounded-full">
-                    Save ${r.savings.toFixed(2)}
+                    Save €{r.savings.toFixed(2)}
                   </span>
                 )}
               </div>

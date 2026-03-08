@@ -8,10 +8,12 @@ interface ProductCardProps {
 }
 
 const storeColorMap: Record<string, string> = {
-  walmart: "bg-store-1",
-  kroger: "bg-store-2",
-  target: "bg-store-3",
-  aldi: "bg-store-4",
+  aldi: "bg-store-1",
+  albert_heijn: "bg-store-2",
+  carrefour: "bg-store-3",
+  colruyt: "bg-store-4",
+  jumbo: "bg-store-5",
+  lidl: "bg-store-6",
 };
 
 const ProductCard = ({ product, index, onView }: ProductCardProps) => {
@@ -73,7 +75,7 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
                       isLowest ? "text-foreground" : "text-muted-foreground"
                     }`}
                   >
-                    ${pp.price.toFixed(2)}
+                    €{pp.price.toFixed(2)}
                     {pp.onSale && (
                       <span className="ml-1 text-savings font-normal text-[10px]">SALE</span>
                     )}
@@ -88,7 +90,7 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
       <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
         <span className="text-xs text-muted-foreground">Best deal</span>
         <span className="text-sm font-display font-bold text-accent-foreground">
-          {lowestStore?.name} — ${lowest.price.toFixed(2)}
+          {lowestStore?.name} — €{lowest.price.toFixed(2)}
         </span>
       </div>
     </div>

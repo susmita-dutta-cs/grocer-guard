@@ -93,9 +93,14 @@ const Index = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filtered.map((product, i) => (
+                    {filtered.slice(0, 50).map((product, i) => (
                       <ProductCard key={product.id} product={product} index={i} onView={() => trackView(product.id)} />
                     ))}
+                    {filtered.length > 50 && (
+                      <p className="text-center text-xs text-muted-foreground py-4">
+                        Showing 50 of {filtered.length} — use search to find more
+                      </p>
+                    )}
                   </div>
                 )}
               </section>

@@ -76,7 +76,7 @@ const Index = () => {
 
     const matchedIds = new Set<string>();
 
-    // 1. Match by primary keyword in name
+    // 1. Match by primary keyword in name (non-home-brand products)
     if (primaryKeyword) {
       products.forEach((p) => {
         if (p.id !== selectedProduct.id && p.name.toLowerCase().includes(primaryKeyword)) {
@@ -85,11 +85,14 @@ const Index = () => {
       });
     }
 
-    // 2. Also include home brand products that match by keyword
-    if (primaryKeyword) {
+    // 2. Include home brand products from same category that match ANY keyword
+    if (keywords.length > 0) {
       products.forEach((p) => {
-        if (p.id !== selectedProduct.id && isHomeBrand(p.brand) && p.name.toLowerCase().includes(primaryKeyword)) {
-          matchedIds.add(p.id);
+        if (p.id !== selectedProduct.id && p.category === selectedProduct.category && isHomeBrand(p.brand)) {
+          const pName = p.name.toLowerCase();
+          if (keywords.some((kw) => pName.includes(kw))) {
+            matchedIds.add(p.id);
+          }
         }
       });
     }

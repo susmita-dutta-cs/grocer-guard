@@ -1,5 +1,5 @@
 import type { SmartBasketResult } from "@/hooks/useRecommendations";
-import { products } from "@/data/groceryData";
+import { useGroceryData } from "@/hooks/useGroceryData";
 import { ShoppingCart, Check, Plus } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -20,6 +20,7 @@ interface SmartBasketProps {
 
 const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
   const { t } = useI18n();
+  const { products } = useGroceryData();
 
   return (
     <div className="space-y-4">

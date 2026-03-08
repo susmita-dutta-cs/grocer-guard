@@ -44,7 +44,7 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
             >
               {inBasket ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
               <span>{p.image}</span>
-              {p.name}
+              {t(`product.${p.name}`) !== `product.${p.name}` ? t(`product.${p.name}`) : p.name}
             </button>
           );
         })}

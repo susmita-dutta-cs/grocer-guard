@@ -19,6 +19,8 @@ const storeColorMap: Record<string, string> = {
 
 const ProductCard = ({ product, index, onView }: ProductCardProps) => {
   const { t } = useI18n();
+  const translatedName = t(`product.${product.name}`) !== `product.${product.name}` ? t(`product.${product.name}`) : product.name;
+  const translatedUnit = t(`unit.${product.unit}`) !== `unit.${product.unit}` ? t(`unit.${product.unit}`) : product.unit;
   const lowest = getLowestPrice(product);
   const highest = getHighestPrice(product);
   const savings = getSavingsPercent(product);
@@ -37,9 +39,9 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
           </div>
           <div>
             <h3 className="font-display font-semibold text-sm text-card-foreground leading-tight">
-              {product.name}
+              {translatedName}
             </h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{product.unit}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{translatedUnit}</p>
           </div>
         </div>
         {savings > 10 && (

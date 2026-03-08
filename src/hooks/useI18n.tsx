@@ -158,6 +158,31 @@ const translations: Translations = {
     fr: "Essayez une autre recherche ou catégorie",
   },
   "products.items": { en: "items", nl: "artikelen", fr: "articles" },
+
+  // Product names
+  "product.Organic Bananas": { en: "Organic Bananas", nl: "Biologische Bananen", fr: "Bananes Bio" },
+  "product.Whole Milk (1L)": { en: "Whole Milk (1L)", nl: "Volle Melk (1L)", fr: "Lait Entier (1L)" },
+  "product.Free Range Eggs (10)": { en: "Free Range Eggs (10)", nl: "Scharreleieren (10)", fr: "Œufs Plein Air (10)" },
+  "product.Chicken Breast": { en: "Chicken Breast", nl: "Kipfilet", fr: "Blanc de Poulet" },
+  "product.White Bread": { en: "White Bread", nl: "Witbrood", fr: "Pain Blanc" },
+  "product.Fresh Strawberries": { en: "Fresh Strawberries", nl: "Verse Aardbeien", fr: "Fraises Fraîches" },
+  "product.Gouda Cheese": { en: "Gouda Cheese", nl: "Goudse Kaas", fr: "Fromage Gouda" },
+  "product.Ground Beef": { en: "Ground Beef", nl: "Rundergehakt", fr: "Bœuf Haché" },
+  "product.Coca-Cola 6-pack": { en: "Coca-Cola 6-pack", nl: "Coca-Cola 6-pack", fr: "Coca-Cola 6-pack" },
+  "product.Potato Chips": { en: "Potato Chips", nl: "Chips", fr: "Chips" },
+  "product.Spaghetti Pasta": { en: "Spaghetti Pasta", nl: "Spaghetti Pasta", fr: "Pâtes Spaghetti" },
+  "product.Avocados": { en: "Avocados", nl: "Avocado's", fr: "Avocats" },
+
+  // Product units
+  "unit.per kg": { en: "per kg", nl: "per kg", fr: "par kg" },
+  "unit.per liter": { en: "per liter", nl: "per liter", fr: "par litre" },
+  "unit.per 10": { en: "per 10", nl: "per 10", fr: "par 10" },
+  "unit.per loaf": { en: "per loaf", nl: "per brood", fr: "par pain" },
+  "unit.per 500g": { en: "per 500g", nl: "per 500g", fr: "par 500g" },
+  "unit.per 400g": { en: "per 400g", nl: "per 400g", fr: "par 400g" },
+  "unit.per 200g": { en: "per 200g", nl: "per 200g", fr: "par 200g" },
+  "unit.each": { en: "each", nl: "per stuk", fr: "pièce" },
+  "unit.6 × 330ml": { en: "6 × 330ml", nl: "6 × 330ml", fr: "6 × 330ml" },
 };
 
 // Category key mapping

@@ -13,6 +13,7 @@ import { useRecommendations } from "@/hooks/useRecommendations";
 const Index = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const { products } = useGroceryData();
   const { bestValue, deals, personalized, smartBasket, basketIds, toggleBasketItem, trackView } =
     useRecommendations();
 

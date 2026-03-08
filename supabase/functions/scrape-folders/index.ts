@@ -152,7 +152,8 @@ async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): P
 
 async function scrapeStore(
   firecrawlKey: string,
-  storeId: string
+  storeId: string,
+  STORE_PROMO_URLS: Record<string, StoreConfig>
 ): Promise<ScrapeResult> {
   const config = STORE_PROMO_URLS[storeId];
   if (!config) throw new Error(`Unknown store: ${storeId}`);

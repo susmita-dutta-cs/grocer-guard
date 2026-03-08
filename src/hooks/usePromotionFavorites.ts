@@ -71,5 +71,5 @@ export function usePromotionFavorites() {
     [favoriteIds]
   );
 
-  return { isFavorite, toggleFavorite };
+  return { favoriteIds, isFavorite, toggleFavorite, count: favoriteIds.size };
 }

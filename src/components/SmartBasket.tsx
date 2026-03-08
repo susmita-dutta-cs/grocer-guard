@@ -14,6 +14,15 @@ const storeColorMap: Record<string, string> = {
   lidl: "bg-store-6",
 };
 
+const storeHomeBrands: Record<string, string[]> = {
+  aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
+  albert_heijn: ["AH", "Albert Heijn", "AH Basic", "AH Excellent", "AH Terra"],
+  carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Carrefour Extra"],
+  colruyt: ["Boni", "Boni Selection", "Everyday", "Spar"],
+  jumbo: ["Jumbo", "Jumbo Biologisch"],
+  lidl: ["Lidl", "Milbona", "Cien", "Deluxe", "Silvercrest", "Perlenbacher", "Freeway", "Solevita"],
+};
+
 interface SmartBasketProps {
   basketIds: string[];
   results: SmartBasketResult[];
@@ -98,27 +107,40 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
                   <div className={`border border-t-0 rounded-b-xl overflow-hidden ${
                     isFirst ? "border-primary/20" : "border-border"
                   }`}>
-                    {r.items.map((item) => (
-                      <div
-                        key={item.productId}
-                        className="flex items-center gap-3 px-4 py-2.5 border-t border-border/50 bg-card/50"
-                      >
-                        <span className="text-lg">{item.image}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-foreground truncate">
-                            {item.productName}
-                          </p>
-                          {item.brand && (
-                            <p className="text-[10px] text-primary/70 font-medium">{item.brand}</p>
-                          )}
+                    {r.items.map((item) => {
+                      const homeBrands = storeHomeBrands[r.storeId] || [];
+                      const isHomeBrand = item.brand && homeBrands.some(
+                        (hb) => item.brand!.toLowerCase().includes(hb.toLowerCase())
+                      );
+                      return (
+                        <div
+                          key={item.productId}
+                          className="flex items-center gap-3 px-4 py-2.5 border-t border-border/50 bg-card/50"
+                        >
+                          <span className="text-lg">{item.image}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {item.productName}
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                              {item.brand && (
+                                <p className="text-[10px] text-primary/70 font-medium">{item.brand}</p>
+                              )}
+                              {isHomeBrand && (
+                                <span className="text-[8px] font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">
+                                  Home Brand
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-xs font-display font-bold ${
+                            item.available ? "text-foreground" : "text-muted-foreground"
+                          }`}>
+                            {item.available ? `€${item.price.toFixed(2)}` : "N/A"}
+                          </span>
                         </div>
-                        <span className={`text-xs font-display font-bold ${
-                          item.available ? "text-foreground" : "text-muted-foreground"
-                        }`}>
-                          {item.available ? `€${item.price.toFixed(2)}` : "N/A"}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

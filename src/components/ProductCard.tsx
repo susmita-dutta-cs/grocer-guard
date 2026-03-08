@@ -95,9 +95,10 @@ const ProductCard = ({ product, index, onView, isFavorite, onToggleFavorite }: P
     ? Math.round(((lowest.price - homeBrandAlt.price) / lowest.price) * 100)
     : 0;
 
-  // Count related brands in same category
+  // Count related brands with the same product name
+  const baseName = product.name.toLowerCase().trim();
   const relatedCount = allProducts.filter(
-    (p) => p.id !== product.id && p.category === product.category
+    (p) => p.id !== product.id && p.name.toLowerCase().trim() === baseName
   ).length;
 
   return (

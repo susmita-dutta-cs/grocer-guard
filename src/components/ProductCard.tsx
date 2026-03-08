@@ -4,6 +4,7 @@ import { TrendingDown } from "lucide-react";
 interface ProductCardProps {
   product: Product;
   index: number;
+  onView?: () => void;
 }
 
 const storeColorMap: Record<string, string> = {

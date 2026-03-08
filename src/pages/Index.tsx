@@ -93,7 +93,7 @@ const Index = () => {
             <CategoryFilter selected={category} onSelect={setCategory} />
             <div className="space-y-3">
               {filtered.slice(0, 50).map((product, i) => (
-                <ProductCard key={product.id} product={product} index={i} onView={() => trackView(product.id)} />
+                <ProductCard key={product.id} product={product} index={i} onView={() => trackView(product.id)} isFavorite={isFavorite(product.id)} onToggleFavorite={() => toggleFavorite(product.id)} />
               ))}
               {filtered.length > 50 && (
                 <p className="text-center text-xs text-muted-foreground py-4">

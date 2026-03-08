@@ -95,19 +95,18 @@ const ProductCard = ({ product, index, onView, isFavorite, onToggleFavorite }: P
     ? Math.round(((lowest.price - homeBrandAlt.price) / lowest.price) * 100)
     : 0;
 
-  // Count related brands by keyword matching in same category
+  // Count related products by primary keyword match
   const relatedCount = useMemo(() => {
-    const stopWords = new Set(["the", "and", "per", "with", "for", "from", "pack", "each"]);
+    const stopWords = new Set(["the", "and", "per", "with", "for", "from", "pack", "each", "fresh", "organic", "free", "range"]);
     const keywords = product.name
       .toLowerCase()
       .split(/[\s\-\/\(\),]+/)
       .filter((w) => w.length >= 3 && !stopWords.has(w));
     if (keywords.length === 0) return 0;
+    const primaryKeyword = keywords.reduce((a, b) => (a.length >= b.length ? a : b));
     return allProducts.filter((p) => {
       if (p.id === product.id) return false;
-      if (p.category !== product.category) return false;
-      const pWords = p.name.toLowerCase().split(/[\s\-\/\(\),]+/);
-      return keywords.some((kw) => pWords.some((pw) => pw.includes(kw) || kw.includes(pw)));
+      return p.name.toLowerCase().includes(primaryKeyword);
     }).length;
   }, [product, allProducts]);
 

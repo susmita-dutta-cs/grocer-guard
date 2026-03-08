@@ -200,7 +200,10 @@ const Index = () => {
         )}
 
         {activeTab === "basket" && (
-          <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
+          <div className="space-y-6">
+            <SavedDealsBasket />
+            <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
+          </div>
         )}
 
         {activeTab === "settings" && <SettingsPanel />}

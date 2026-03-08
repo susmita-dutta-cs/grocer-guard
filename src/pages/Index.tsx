@@ -115,7 +115,7 @@ const Index = () => {
         {activeTab === "settings" && <SettingsPanel />}
       </main>
 
-      <BottomNav active={activeTab} onNavigate={setActiveTab} basketCount={basketIds.length} />
+      <BottomNav active={activeTab} onNavigate={setActiveTab} basketCount={basketIds.length} favoritesCount={favCount} />
     </div>
   );
 };

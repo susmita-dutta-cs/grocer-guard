@@ -22,7 +22,7 @@ export function usePromotions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("weekly_promotions")
-        .select("id, product_name, brand, store_id, original_price, promo_price, quantity, discount_type, category, valid_from, valid_until")
+        .select("id, product_name, brand, store_id, original_price, promo_price, quantity, discount_type, category, valid_from, valid_until, matched_product_id")
         .order("store_id")
         .order("category");
 

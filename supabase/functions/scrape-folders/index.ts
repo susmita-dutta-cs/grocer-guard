@@ -561,7 +561,7 @@ Deno.serve(async (req) => {
 
         if (insertErr) {
           console.error(`Insert error for ${sid}:`, insertErr);
-          results[sid] = { promotions: promos.length, matched: 0, method: config.method, error: insertErr.message };
+          results[sid] = { promotions: allPromos.length, matched: 0, method: config.method, error: insertErr.message };
           continue;
         }
 

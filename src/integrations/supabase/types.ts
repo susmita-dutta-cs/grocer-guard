@@ -14,7 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      product_prices: {
+        Row: {
+          id: string
+          on_sale: boolean | null
+          price: number
+          product_id: string
+          scraped_at: string
+          source_url: string | null
+          store_id: string
+        }
+        Insert: {
+          id?: string
+          on_sale?: boolean | null
+          price: number
+          product_id: string
+          scraped_at?: string
+          source_url?: string | null
+          store_id: string
+        }
+        Update: {
+          id?: string
+          on_sale?: boolean | null
+          price?: number
+          product_id?: string
+          scraped_at?: string
+          source_url?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_prices_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_prices_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          image: string | null
+          name: string
+          unit: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          image?: string | null
+          name: string
+          unit: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          image?: string | null
+          name?: string
+          unit?: string
+        }
+        Relationships: []
+      }
+      scrape_logs: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          products_found: number | null
+          started_at: string
+          status: string
+          store_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          products_found?: number | null
+          started_at?: string
+          status?: string
+          store_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          products_found?: number | null
+          started_at?: string
+          status?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scrape_logs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          name: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

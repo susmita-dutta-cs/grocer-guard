@@ -8,22 +8,30 @@ const corsHeaders = {
 
 interface StoreConfig {
   url: string;
-  method: "scrape" | "search" | "screenshot";
+  method: "scrape" | "search" | "screenshot" | "crawl";
   waitFor?: number;
+  crawlLimit?: number;
+  includePaths?: string[];
 }
 
 const STORE_PROMO_URLS: Record<string, StoreConfig> = {
   aldi: { url: "https://www.aldi.be/nl/onze-aanbiedingen.html", method: "scrape", waitFor: 3000 },
   albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape", waitFor: 3000 },
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
-  colruyt: { url: "https://www.colruyt.be/nl/acties", method: "screenshot", waitFor: 8000 },
+  colruyt: {
+    url: "https://www.colruyt.be/nl/acties",
+    method: "crawl",
+    waitFor: 8000,
+    crawlLimit: 10,
+    includePaths: ["/nl/acties*", "/nl/promoties*"],
+  },
   jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape", waitFor: 3000 },
   lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "screenshot", waitFor: 5000 },
 };
 
 interface ScrapeResult {
   markdown?: string;
-  screenshot?: string; // base64 image
+  screenshot?: string; // base64 image or URL
 }
 
 async function scrapeStore(
@@ -55,6 +63,67 @@ async function scrapeStore(
       .map((r: any) => `${r.title || ""}\n${r.description || ""}\n${r.markdown || ""}`)
       .join("\n---\n");
     return { markdown };
+  }
+
+  if (config.method === "crawl") {
+    // Use Firecrawl crawl to discover and scrape multiple promo pages
+    console.log(`Starting crawl for ${storeId} with limit ${config.crawlLimit || 10}...`);
+    const crawlResponse = await fetch("https://api.firecrawl.dev/v1/crawl", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${firecrawlKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: config.url,
+        limit: config.crawlLimit || 10,
+        maxDepth: 2,
+        includePaths: config.includePaths,
+        scrapeOptions: {
+          formats: ["markdown"],
+          onlyMainContent: true,
+          waitFor: config.waitFor || 3000,
+        },
+      }),
+    });
+
+    const crawlData = await crawlResponse.json();
+    if (!crawlResponse.ok) throw new Error(`Firecrawl crawl error: ${JSON.stringify(crawlData)}`);
+
+    // Crawl returns an async job - poll for results
+    const crawlId = crawlData.id;
+    if (!crawlId) {
+      // Synchronous response
+      const pages = crawlData.data || [];
+      const markdown = pages.map((p: any) => p.markdown || "").join("\n\n---PAGE---\n\n");
+      console.log(`Crawl returned ${pages.length} pages synchronously`);
+      return { markdown };
+    }
+
+    // Poll for crawl completion (max 120 seconds)
+    let allMarkdown = "";
+    let totalPages = 0;
+    for (let i = 0; i < 24; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const statusRes = await fetch(`https://api.firecrawl.dev/v1/crawl/${crawlId}`, {
+        headers: { Authorization: `Bearer ${firecrawlKey}` },
+      });
+      const statusData = await statusRes.json();
+
+      if (statusData.status === "completed") {
+        const pages = statusData.data || [];
+        totalPages = pages.length;
+        allMarkdown = pages.map((p: any) => p.markdown || "").join("\n\n---PAGE---\n\n");
+        break;
+      }
+      if (statusData.status === "failed") {
+        throw new Error(`Crawl failed: ${statusData.error || "unknown"}`);
+      }
+      console.log(`Crawl ${crawlId} status: ${statusData.status}, completed: ${statusData.completed || 0}/${statusData.total || "?"}`);
+    }
+
+    console.log(`Crawl finished: ${totalPages} pages, ${allMarkdown.length} chars`);
+    return { markdown: allMarkdown };
   }
 
   // For both "scrape" and "screenshot" methods, use Firecrawl scrape

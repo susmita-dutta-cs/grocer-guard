@@ -10,10 +10,12 @@ import SmartBasket from "@/components/SmartBasket";
 import PromotionsSection from "@/components/PromotionsSection";
 import BottomNav from "@/components/BottomNav";
 import SettingsPanel from "@/components/SettingsPanel";
+import FavoritesSection from "@/components/FavoritesSection";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useI18n, categoryKeyMap } from "@/hooks/useI18n";
 import { useProductName } from "@/hooks/useProductName";
+import { useFavorites } from "@/hooks/useFavorites";
 
 const Index = () => {
   const [search, setSearch] = useState("");
@@ -24,6 +26,7 @@ const Index = () => {
   const { getProductName } = useProductName();
   const { bestValue, deals, personalized, smartBasket, basketIds, toggleBasketItem, trackView } =
     useRecommendations();
+  const { favoriteIds, isFavorite, toggleFavorite, count: favCount } = useFavorites();
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -90,7 +93,7 @@ const Index = () => {
             <CategoryFilter selected={category} onSelect={setCategory} />
             <div className="space-y-3">
               {filtered.slice(0, 50).map((product, i) => (
-                <ProductCard key={product.id} product={product} index={i} onView={() => trackView(product.id)} />
+                <ProductCard key={product.id} product={product} index={i} onView={() => trackView(product.id)} isFavorite={isFavorite(product.id)} onToggleFavorite={() => toggleFavorite(product.id)} />
               ))}
               {filtered.length > 50 && (
                 <p className="text-center text-xs text-muted-foreground py-4">
@@ -101,6 +104,10 @@ const Index = () => {
           </div>
         )}
 
+        {activeTab === "favorites" && (
+          <FavoritesSection favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />
+        )}
+
         {activeTab === "basket" && (
           <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
         )}
@@ -108,7 +115,7 @@ const Index = () => {
         {activeTab === "settings" && <SettingsPanel />}
       </main>
 
-      <BottomNav active={activeTab} onNavigate={setActiveTab} basketCount={basketIds.length} />
+      <BottomNav active={activeTab} onNavigate={setActiveTab} basketCount={basketIds.length} favoritesCount={favCount} />
     </div>
   );
 };

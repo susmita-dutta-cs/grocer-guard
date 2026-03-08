@@ -118,6 +118,7 @@ const translations: Translations = {
   // Navigation
   "nav.home": { en: "Home", nl: "Home", fr: "Accueil" },
   "nav.search": { en: "Search", nl: "Zoeken", fr: "Rechercher" },
+  "nav.favorites": { en: "Favorites", nl: "Favorieten", fr: "Favoris" },
   "nav.basket": { en: "Basket", nl: "Mand", fr: "Panier" },
   "nav.settings": { en: "Settings", nl: "Instellingen", fr: "Paramètres" },
   // Settings

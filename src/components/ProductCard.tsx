@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Product, stores, getLowestPrice, getHighestPrice, getSavingsPercent } from "@/data/groceryData";
-import { TrendingDown, Tag } from "lucide-react";
+import { TrendingDown, Tag, Heart } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import { useProductName } from "@/hooks/useProductName";
 import { useGroceryData } from "@/hooks/useGroceryData";
@@ -9,6 +9,8 @@ interface ProductCardProps {
   product: Product;
   index: number;
   onView?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 const storeColorMap: Record<string, string> = {
@@ -45,7 +47,7 @@ function getHomeBrandStore(brand: string): string | undefined {
   return undefined;
 }
 
-const ProductCard = ({ product, index, onView }: ProductCardProps) => {
+const ProductCard = ({ product, index, onView, isFavorite, onToggleFavorite }: ProductCardProps) => {
   const { t } = useI18n();
   const { getProductName } = useProductName();
   const { products: allProducts } = useGroceryData();
@@ -114,12 +116,24 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
             <p className="text-[10px] text-muted-foreground mt-0.5">{translatedUnit}</p>
           </div>
         </div>
-        {savings > 10 && (
-          <span className="flex items-center gap-1 bg-primary/15 text-primary text-[10px] font-bold px-2 py-1 rounded-full">
-            <TrendingDown className="h-3 w-3" />
-            {savings}%
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${isFavorite ? "fill-primary text-primary" : "text-muted-foreground"}`}
+              />
+            </button>
+          )}
+          {savings > 10 && (
+            <span className="flex items-center gap-1 bg-primary/15 text-primary text-[10px] font-bold px-2 py-1 rounded-full">
+              <TrendingDown className="h-3 w-3" />
+              {savings}%
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1.5">

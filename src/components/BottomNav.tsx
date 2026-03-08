@@ -1,15 +1,17 @@
-import { Home, Search, ShoppingCart, Settings } from "lucide-react";
+import { Home, Search, ShoppingCart, Heart, Settings } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 
 interface BottomNavProps {
   active: string;
   onNavigate: (tab: string) => void;
   basketCount?: number;
+  favoritesCount?: number;
 }
 
 const tabIcons = {
   home: Home,
   search: Search,
+  favorites: Heart,
   basket: ShoppingCart,
   settings: Settings,
 };
@@ -17,13 +19,14 @@ const tabIcons = {
 const tabKeys = {
   home: "nav.home",
   search: "nav.search",
+  favorites: "nav.favorites",
   basket: "nav.basket",
   settings: "nav.settings",
 };
 
-const BottomNav = ({ active, onNavigate, basketCount = 0 }: BottomNavProps) => {
+const BottomNav = ({ active, onNavigate, basketCount = 0, favoritesCount = 0 }: BottomNavProps) => {
   const { t } = useI18n();
-  const tabs = ["home", "search", "basket", "settings"] as const;
+  const tabs = ["home", "search", "favorites", "basket", "settings"] as const;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border">
@@ -47,6 +50,11 @@ const BottomNav = ({ active, onNavigate, basketCount = 0 }: BottomNavProps) => {
                 {id === "basket" && basketCount > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-primary text-primary-foreground text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
                     {basketCount}
+                  </span>
+                )}
+                {id === "favorites" && favoritesCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-primary text-primary-foreground text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
+                    {favoritesCount}
                   </span>
                 )}
               </div>

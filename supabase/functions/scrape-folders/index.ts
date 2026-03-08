@@ -14,7 +14,7 @@ interface StoreConfig {
   includePaths?: string[];
 }
 
-const STORE_PROMO_URLS: Record<string, StoreConfig> = {
+const DEFAULT_STORE_PROMO_URLS: Record<string, StoreConfig> = {
   aldi: { url: "https://www.aldi.be/nl/onze-aanbiedingen.html", method: "scrape", waitFor: 3000 },
   albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape", waitFor: 3000 },
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
@@ -26,6 +26,36 @@ const STORE_PROMO_URLS: Record<string, StoreConfig> = {
   jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape", waitFor: 3000 },
   lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "screenshot", waitFor: 5000 },
 };
+
+// Load store configs from DB, falling back to hardcoded defaults
+async function loadStoreConfigs(supabaseAdmin: any): Promise<Record<string, StoreConfig>> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("store_scrape_configs")
+      .select("store_id, folder_url, scrape_method");
+
+    if (error || !data || data.length === 0) {
+      console.log("No DB configs found, using defaults");
+      return { ...DEFAULT_STORE_PROMO_URLS };
+    }
+
+    const configs = { ...DEFAULT_STORE_PROMO_URLS };
+    for (const row of data) {
+      if (row.folder_url && configs[row.store_id]) {
+        configs[row.store_id] = {
+          ...configs[row.store_id],
+          url: row.folder_url,
+          method: (row.scrape_method || configs[row.store_id].method) as StoreConfig["method"],
+        };
+        console.log(`Using DB URL for ${row.store_id}: ${row.folder_url} (${row.scrape_method})`);
+      }
+    }
+    return configs;
+  } catch (e) {
+    console.error("Error loading store configs from DB:", e);
+    return { ...DEFAULT_STORE_PROMO_URLS };
+  }
+}
 
 interface ScrapeResult {
   markdown?: string;
@@ -122,7 +152,8 @@ async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): P
 
 async function scrapeStore(
   firecrawlKey: string,
-  storeId: string
+  storeId: string,
+  STORE_PROMO_URLS: Record<string, StoreConfig>
 ): Promise<ScrapeResult> {
   const config = STORE_PROMO_URLS[storeId];
   if (!config) throw new Error(`Unknown store: ${storeId}`);
@@ -522,6 +553,9 @@ Deno.serve(async (req) => {
       // No body = scrape all stores
     }
 
+    // Load store configs from DB (with fallback to defaults)
+    const STORE_PROMO_URLS = await loadStoreConfigs(supabase);
+
     const storeIds = storeId ? [storeId] : Object.keys(STORE_PROMO_URLS);
     const results: Record<string, { promotions: number; matched: number; method: string; error?: string }> = {};
 
@@ -610,7 +644,7 @@ Deno.serve(async (req) => {
           continue;
         } else {
           // Standard scrape/screenshot flow
-          const scrapeResult = await scrapeStore(firecrawlKey, sid);
+          const scrapeResult = await scrapeStore(firecrawlKey, sid, STORE_PROMO_URLS);
 
           const hasContent = (scrapeResult.markdown && scrapeResult.markdown.length > 100) || scrapeResult.screenshot;
           if (!hasContent) {

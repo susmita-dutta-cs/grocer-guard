@@ -1,14 +1,95 @@
-import { Info, Globe, ShieldCheck, LogIn, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Info, Globe, ShieldCheck, LogIn, LogOut, Link2, Save, Loader2 } from "lucide-react";
 import { useI18n, languageNames, languageFlags, type Language } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const languages: Language[] = ["en", "nl", "fr"];
+
+const storeNames: Record<string, string> = {
+  aldi: "Aldi",
+  albert_heijn: "Albert Heijn",
+  carrefour: "Carrefour",
+  colruyt: "Colruyt",
+  jumbo: "Jumbo",
+  lidl: "Lidl",
+};
+
+const methodOptions = ["scrape", "screenshot", "issuu", "crawl"];
+
+type StoreConfig = {
+  store_id: string;
+  folder_url: string;
+  scrape_method: string;
+};
 
 const SettingsPanel = () => {
   const { t, language, setLanguage } = useI18n();
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
+
+  const [configs, setConfigs] = useState<StoreConfig[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [loadingConfigs, setLoadingConfigs] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin) {
+      setLoadingConfigs(true);
+      supabase
+        .from("store_scrape_configs")
+        .select("store_id, folder_url, scrape_method")
+        .order("store_id")
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setConfigs(data);
+          } else {
+            // Initialize with empty configs for all stores
+            setConfigs(
+              Object.keys(storeNames).map((id) => ({
+                store_id: id,
+                folder_url: "",
+                scrape_method: "scrape",
+              }))
+            );
+          }
+          setLoadingConfigs(false);
+        });
+    }
+  }, [isAdmin]);
+
+  const updateConfig = (storeId: string, field: "folder_url" | "scrape_method", value: string) => {
+    setConfigs((prev) =>
+      prev.map((c) => (c.store_id === storeId ? { ...c, [field]: value } : c))
+    );
+  };
+
+  const saveConfigs = async () => {
+    setSaving(true);
+    try {
+      for (const config of configs) {
+        const { error } = await supabase
+          .from("store_scrape_configs")
+          .upsert(
+            {
+              store_id: config.store_id,
+              folder_url: config.folder_url,
+              scrape_method: config.scrape_method,
+              updated_at: new Date().toISOString(),
+              updated_by: user?.id,
+            },
+            { onConflict: "store_id" }
+          );
+        if (error) throw error;
+      }
+      toast.success("Folder URLs updated successfully");
+    } catch (e: any) {
+      toast.error("Failed to save: " + (e.message || "Unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -53,6 +134,75 @@ const SettingsPanel = () => {
           </button>
         )}
       </div>
+
+      {/* Admin: Folder URL Manager */}
+      {isAdmin && (
+        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Link2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-display font-semibold text-sm text-card-foreground">
+                Store Folder URLs
+              </h3>
+              <p className="text-[10px] text-muted-foreground">
+                Update scraping URLs for weekly promotions
+              </p>
+            </div>
+          </div>
+
+          {loadingConfigs ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {configs.map((config) => (
+                <div key={config.store_id} className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="text-xs font-medium text-foreground">
+                      {storeNames[config.store_id] || config.store_id}
+                    </span>
+                    <select
+                      value={config.scrape_method}
+                      onChange={(e) => updateConfig(config.store_id, "scrape_method", e.target.value)}
+                      className="ml-auto text-[10px] bg-muted border border-border rounded-lg px-2 py-1 text-muted-foreground"
+                    >
+                      {methodOptions.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <input
+                    type="url"
+                    value={config.folder_url}
+                    onChange={(e) => updateConfig(config.store_id, "folder_url", e.target.value)}
+                    placeholder={`https://...`}
+                    className="w-full text-xs bg-muted border border-border rounded-xl px-3 py-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/40 transition-colors"
+                  />
+                </div>
+              ))}
+
+              <button
+                onClick={saveConfigs}
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity active:scale-[0.98] disabled:opacity-50"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {saving ? "Saving..." : "Save URLs"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Language Selector */}
       <div className="bg-card rounded-2xl border border-border p-4 space-y-3">

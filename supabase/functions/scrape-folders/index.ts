@@ -93,7 +93,7 @@ async function scrapeStore(
         const pattern = p.replace("*", "");
         return lower.includes(pattern);
       }) || lower.includes("/acties") || lower.includes("/promotie");
-    }).slice(0, config.crawlLimit || 5);
+    }).slice(0, 3);
 
     console.log(`Found ${allLinks.length} URLs, ${promoLinks.length} promo URLs for ${storeId}`);
 

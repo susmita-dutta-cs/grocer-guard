@@ -1,8 +1,17 @@
-import { ArrowLeft, Heart, Tag } from "lucide-react";
+import { ArrowLeft, Heart } from "lucide-react";
 import { Product, stores, getLowestPrice } from "@/data/groceryData";
 import { useProductName } from "@/hooks/useProductName";
 import { useI18n } from "@/hooks/useI18n";
 import { useMemo } from "react";
+
+const storeColorMap: Record<string, string> = {
+  aldi: "bg-store-1",
+  albert_heijn: "bg-store-2",
+  carrefour: "bg-store-3",
+  colruyt: "bg-store-4",
+  jumbo: "bg-store-5",
+  lidl: "bg-store-6",
+};
 
 const storeHomeBrands: Record<string, string[]> = {
   aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
@@ -17,15 +26,6 @@ function isHomeBrandForStore(brand: string, storeId: string): boolean {
   const brands = storeHomeBrands[storeId] || [];
   return brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()));
 }
-
-const storeColorMap: Record<string, string> = {
-  aldi: "bg-store-1",
-  albert_heijn: "bg-store-2",
-  carrefour: "bg-store-3",
-  colruyt: "bg-store-4",
-  jumbo: "bg-store-5",
-  lidl: "bg-store-6",
-};
 
 interface ProductDetailProps {
   product: Product;
@@ -64,7 +64,6 @@ const ProductDetail = ({
     [product, relatedProducts]
   );
 
-  // Group by store: for each store, collect all brand prices
   const storeGroups: StoreGroup[] = useMemo(() => {
     const map = new Map<string, BrandPrice[]>();
 
@@ -96,7 +95,6 @@ const ProductDetail = ({
     return groups.sort((a, b) => a.cheapest - b.cheapest);
   }, [allVariants, getProductName]);
 
-  // Global max price for bar scaling
   const globalMax = useMemo(() => {
     let max = 0;
     for (const g of storeGroups) {
@@ -106,8 +104,6 @@ const ProductDetail = ({
     }
     return max || 1;
   }, [storeGroups]);
-
-  const globalCheapest = storeGroups.length > 0 ? storeGroups[0].cheapest : 0;
 
   return (
     <div className="space-y-4 animate-fade-in-up">
@@ -168,50 +164,20 @@ const ProductDetail = ({
                   const isHome = isHomeBrandForStore(bp.brand, group.storeId);
 
                   return (
-                    <div key={bp.productId} className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-20 flex items-center gap-1">
-                          <span className="text-[10px] font-medium text-muted-foreground truncate">
-                            {bp.brand}
+                    <div key={bp.productId} className="flex items-center gap-2">
+                      <div className="w-20 flex items-center gap-1 min-w-0">
+                        <span className="text-[10px] font-medium text-muted-foreground truncate">
+                          {bp.brand}
+                        </span>
+                        {isHome && (
+                          <span className="shrink-0 text-[7px] font-bold bg-accent text-accent-foreground px-1 py-0.5 rounded-full">
+                            🏠
                           </span>
-                          {isHome && (
-                            <span className="shrink-0 text-[7px] font-bold bg-accent text-accent-foreground px-1 py-0.5 rounded-full">
-                              🏠
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 h-6 bg-muted/50 rounded-lg overflow-hidden relative">
-                          <div
-                            className={`h-full rounded-lg transition-all duration-500 ${storeColorMap[group.storeId]} ${
-                              isLowest ? "opacity-90" : "opacity-30"
-                            }`}
-                            style={{ width: `${barWidth}%` }}
-                          />
-                          <span
-                            className={`absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
-                              isLowest ? "text-foreground" : "text-muted-foreground"
-                            }`}
-                          >
-                            €{bp.price.toFixed(2)}
-                            {bp.onSale && (
-                              <span className="ml-1 text-primary font-normal text-[9px]">
-                                {t("product.sale")}
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => onToggleFavorite(bp.productId)}
-                          className="p-1 rounded-lg hover:bg-muted transition-colors"
-                        >
-                          <Heart
-                            className={`h-3.5 w-3.5 transition-colors ${
-                              isFavorite(bp.productId) ? "fill-primary text-primary" : "text-muted-foreground"
-                            }`}
-                          />
-                        </button>
+                        )}
                       </div>
-                    </div>
+                      <div className="flex-1 h-6 bg-muted/50 rounded-lg overflow-hidden relative">
+                        <div
+                          className={`h-full rounded-lg transition-all duration-500 ${storeColorMap[group.storeId]} ${
                             isLowest ? "opacity-90" : "opacity-30"
                           }`}
                           style={{ width: `${barWidth}%` }}

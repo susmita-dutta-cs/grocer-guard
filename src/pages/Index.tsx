@@ -43,6 +43,23 @@ const Index = () => {
   }, [search, category, products, language, getProductName]);
 
   // Find related products by matching the primary keyword in the product name
+  // Home brand lists for matching
+  const storeHomeBrands: Record<string, string[]> = {
+    aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
+    albert_heijn: ["AH", "Albert Heijn", "AH Basic", "AH Excellent", "AH Terra"],
+    carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Simpl"],
+    colruyt: ["Boni", "Everyday", "Spar"],
+    jumbo: ["Jumbo"],
+    lidl: ["Lidl", "Milbona", "Cien", "Silvercrest", "Parkside", "Perlenbacher", "Pilos"],
+  };
+
+  const isHomeBrand = (brand: string | undefined) => {
+    if (!brand) return false;
+    return Object.values(storeHomeBrands).some((brands) =>
+      brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()))
+    );
+  };
+
   const relatedProducts = useMemo(() => {
     if (!selectedProduct) return [];
 
@@ -52,16 +69,30 @@ const Index = () => {
       .split(/[\s\-\/\(\),]+/)
       .filter((w) => w.length >= 3 && !stopWords.has(w));
 
-    if (keywords.length === 0) return [];
-
     // Use the longest keyword as the primary one (most specific)
-    const primaryKeyword = keywords.reduce((a, b) => (a.length >= b.length ? a : b));
+    const primaryKeyword = keywords.length > 0
+      ? keywords.reduce((a, b) => (a.length >= b.length ? a : b))
+      : null;
 
-    return products.filter((p) => {
-      if (p.id === selectedProduct.id) return false;
-      const pName = p.name.toLowerCase();
-      return pName.includes(primaryKeyword);
+    const matchedIds = new Set<string>();
+
+    // 1. Match by primary keyword in name
+    if (primaryKeyword) {
+      products.forEach((p) => {
+        if (p.id !== selectedProduct.id && p.name.toLowerCase().includes(primaryKeyword)) {
+          matchedIds.add(p.id);
+        }
+      });
+    }
+
+    // 2. Also include home brand products from the same category
+    products.forEach((p) => {
+      if (p.id !== selectedProduct.id && p.category === selectedProduct.category && isHomeBrand(p.brand)) {
+        matchedIds.add(p.id);
+      }
     });
+
+    return products.filter((p) => matchedIds.has(p.id));
   }, [selectedProduct, products]);
 
   // Group filtered products by base name (strip brand) for the search list

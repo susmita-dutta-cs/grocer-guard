@@ -203,6 +203,51 @@ const AdminPanel = () => {
     }
   };
 
+  const startFolderScrape = async (storeId?: string) => {
+    setFolderProgress({
+      status: "running",
+      storeId: storeId || null,
+      results: {},
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-folders", {
+        body: { store_id: storeId || undefined },
+      });
+
+      if (error) {
+        setFolderProgress({ status: "error", storeId: storeId || null, results: {} });
+        toast.error(error.message);
+        return;
+      }
+
+      if (!data.success) {
+        setFolderProgress({ status: "error", storeId: storeId || null, results: {} });
+        toast.error(data.error || "Unknown error");
+        return;
+      }
+
+      setFolderProgress({
+        status: "done",
+        storeId: storeId || null,
+        results: data.results || {},
+      });
+
+      const totalPromos = Object.values(data.results as Record<string, FolderScrapeResult>).reduce(
+        (sum, r) => sum + r.promotions, 0
+      );
+      const totalMatched = Object.values(data.results as Record<string, FolderScrapeResult>).reduce(
+        (sum, r) => sum + r.matched, 0
+      );
+      toast.success(`Folders scraped: ${totalPromos} promotions found, ${totalMatched} matched to products`);
+      await fetchData();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Folder scraping failed";
+      setFolderProgress({ status: "error", storeId: storeId || null, results: {} });
+      toast.error(msg);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -214,6 +259,7 @@ const AdminPanel = () => {
   if (!isAdmin) return null;
 
   const isRunning = scrapeProgress.status === "running";
+  const isFolderRunning = folderProgress.status === "running";
 
   return (
     <div className="min-h-screen bg-background">

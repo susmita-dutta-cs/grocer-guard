@@ -105,16 +105,18 @@ async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): P
   const svgHash = svgHashMatch[1];
   console.log(`Found SVG hash: ${svgHash}`);
 
-  // Extract page count from "Page X of Y" text
-  const pageCountMatch = readerHtml.match(/of\s+(\d+)/);
-  const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 20;
+  // Extract page count from "Page X of Y" text or meta data
+  const pageCountMatch = readerHtml.match(/of\s+(\d+)/) || readerHtml.match(/pageCount['":\s]+(\d+)/);
+  const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 24;
   console.log(`Total pages: ${totalPages}`);
 
-  // Generate SVG page URLs (skip first page which is usually just the cover)
+  // Generate JPG page image URLs for ALL pages (including cover for completeness)
+  // Issuu serves high-quality JPG images that work much better with vision AI
   const pageUrls: string[] = [];
-  const maxPages = Math.min(totalPages, 24); // Limit to 24 pages to avoid timeout
-  for (let i = 2; i <= maxPages; i++) {
-    pageUrls.push(`https://svg.issuu.com/${svgHash}/page_${i}.svg`);
+  const maxPages = Math.min(totalPages, 30); // Process up to 30 pages
+  for (let i = 1; i <= maxPages; i++) {
+    // Use Issuu's image CDN which provides actual raster images
+    pageUrls.push(`https://image.issuu.com/${svgHash}/jpg/page_${i}.jpg`);
   }
 
   return pageUrls;

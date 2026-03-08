@@ -14,7 +14,8 @@ const storeColorMap: Record<string, string> = {
   aldi: "bg-store-4",
 };
 
-const ProductCard = ({ product, index }: ProductCardProps) => {
+const ProductCard = ({ product, index, onView }: ProductCardProps) => {
+  // Track view on mount
   const lowest = getLowestPrice(product);
   const highest = getHighestPrice(product);
   const savings = getSavingsPercent(product);

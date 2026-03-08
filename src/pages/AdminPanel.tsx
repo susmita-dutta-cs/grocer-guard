@@ -265,6 +265,7 @@ const AdminPanel = () => {
       );
       toast.success(`Folders scraped: ${totalPromos} promotions found, ${totalMatched} matched to products`);
       await fetchData();
+      await fetchPromotions();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Folder scraping failed";
       setFolderProgress({ status: "error", storeId: storeId || null, results: {} });

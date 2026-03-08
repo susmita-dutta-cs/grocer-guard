@@ -173,13 +173,18 @@ async function scrapeStore(
   };
 }
 
-const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgian supermarkets. Extract ONLY food and grocery product promotions from the provided content. Return a JSON array of objects with these fields:
-- product_name: the product name (in Dutch)
+const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgian supermarkets. Extract ALL food and grocery product promotions visible in the provided content or image. Be thorough - extract every single product you can see.
+
+Return a JSON array of objects with these fields:
+- product_name: the specific product name (in Dutch, be specific e.g. "Wortelen" not just "groenten")
+- brand: the brand name (e.g. "Boni Selection", "Colruyt", "Everyday", etc. Use null if unknown)
+- quantity: the quantity/weight (e.g. "1.5 kg", "500g", "6 stuks", "1L", etc. Use null if not visible)
 - discount_type: the type of discount (e.g. "1+1 gratis", "25% korting", "2e halve prijs", "€X korting", "3+1 gratis", etc.)
-- promo_price: the promotional price as a number (null if not available)
-- original_price: the original price as a number (null if not available)
+- promo_price: the promotional/discounted price as a number (null if not available)
+- original_price: the original/regular price as a number (null if not available)
 - category: product category in English (e.g. "dairy", "meat", "vegetables", "fruit", "beverages", "bakery", "snacks", "household", "frozen", "other")
 
+IMPORTANT: Look carefully at ALL products in the image. Read every price tag, every discount label, every product name. Include items partially visible at edges.
 Only include food/grocery items. Skip non-food items like clothing, furniture, electronics, tools.
 Return ONLY the JSON array, no other text. If you can't find any promotions, return an empty array [].`;
 

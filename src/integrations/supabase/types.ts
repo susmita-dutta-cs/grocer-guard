@@ -195,6 +195,7 @@ export type Database = {
       }
       weekly_promotions: {
         Row: {
+          brand: string | null
           category: string | null
           created_at: string
           discount_type: string | null
@@ -203,6 +204,7 @@ export type Database = {
           original_price: number | null
           product_name: string
           promo_price: number | null
+          quantity: string | null
           scraped_at: string
           source_url: string | null
           store_id: string
@@ -210,6 +212,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          brand?: string | null
           category?: string | null
           created_at?: string
           discount_type?: string | null
@@ -218,6 +221,7 @@ export type Database = {
           original_price?: number | null
           product_name: string
           promo_price?: number | null
+          quantity?: string | null
           scraped_at?: string
           source_url?: string | null
           store_id: string
@@ -225,6 +229,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          brand?: string | null
           category?: string | null
           created_at?: string
           discount_type?: string | null
@@ -233,6 +238,7 @@ export type Database = {
           original_price?: number | null
           product_name?: string
           promo_price?: number | null
+          quantity?: string | null
           scraped_at?: string
           source_url?: string | null
           store_id?: string

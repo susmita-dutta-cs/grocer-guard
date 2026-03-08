@@ -1,5 +1,5 @@
 import { products, getLowestPrice, getHighestPrice } from "@/data/groceryData";
-import { DollarSign, TrendingDown, ShoppingCart } from "lucide-react";
+import { Euro, TrendingDown, ShoppingCart } from "lucide-react";
 
 const StatsBar = () => {
   const totalSavings = products.reduce((sum, p) => {

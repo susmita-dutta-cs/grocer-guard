@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/hooks/useI18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Save, ArrowLeft, RefreshCw, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { ShieldCheck, Save, ArrowLeft, RefreshCw, Loader2, CheckCircle, AlertCircle, Newspaper } from "lucide-react";
 import { stores } from "@/data/groceryData";
 import { toast } from "sonner";
 

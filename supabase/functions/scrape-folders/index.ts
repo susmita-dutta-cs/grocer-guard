@@ -66,9 +66,9 @@ async function scrapeStore(
   }
 
   if (config.method === "crawl") {
-    // Step 1: Use map to quickly discover promo URLs
-    console.log(`Mapping ${storeId} promo URLs...`);
-    const mapResponse = await fetch("https://api.firecrawl.dev/v1/map", {
+    // Step 1: Scrape main page with screenshot
+    console.log(`Scraping main promo page for ${storeId} with screenshot...`);
+    const mainRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${firecrawlKey}`,
@@ -76,64 +76,75 @@ async function scrapeStore(
       },
       body: JSON.stringify({
         url: config.url,
-        search: "promoties acties korting aanbieding",
-        limit: 20,
-        includeSubdomains: false,
+        formats: ["markdown", "screenshot"],
+        onlyMainContent: true,
+        waitFor: config.waitFor || 3000,
       }),
     });
+    const mainData = await mainRes.json();
+    if (!mainRes.ok) throw new Error(`Firecrawl scrape error: ${JSON.stringify(mainData)}`);
 
-    const mapData = await mapResponse.json();
-    if (!mapResponse.ok) throw new Error(`Firecrawl map error: ${JSON.stringify(mapData)}`);
+    const mainMarkdown = mainData.data?.markdown || mainData.markdown || "";
+    const mainScreenshot = mainData.data?.screenshot || mainData.screenshot || undefined;
+    console.log(`Main page: ${mainMarkdown.length} chars${mainScreenshot ? ", has screenshot" : ""}`);
 
-    // Filter relevant promo URLs
-    const allLinks: string[] = mapData.links || [];
-    const promoLinks = allLinks.filter((link: string) => {
-      const lower = link.toLowerCase();
-      return (config.includePaths || []).some((p: string) => {
-        const pattern = p.replace("*", "");
-        return lower.includes(pattern);
-      }) || lower.includes("/acties") || lower.includes("/promotie");
-    }).slice(0, 3);
+    // Step 2: Use map to find additional promo pages and scrape top one (text-only for speed)
+    let extraMarkdown = "";
+    try {
+      const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${firecrawlKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: config.url,
+          search: "promoties korting aanbieding",
+          limit: 10,
+          includeSubdomains: false,
+        }),
+      });
+      const mapData = await mapRes.json();
+      const allLinks: string[] = mapData.links || [];
+      const subPages = allLinks
+        .filter((l: string) => l !== config.url && l.includes("/acties"))
+        .slice(0, 2);
 
-    console.log(`Found ${allLinks.length} URLs, ${promoLinks.length} promo URLs for ${storeId}`);
+      console.log(`Found ${subPages.length} sub-pages to scrape`);
 
-    // Step 2: Scrape the main page + top promo pages
-    const urlsToScrape = [config.url, ...promoLinks.filter((l: string) => l !== config.url)].slice(0, 3);
-    const allResults: ScrapeResult[] = [];
-
-    for (const pageUrl of urlsToScrape) {
-      try {
-        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${firecrawlKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: pageUrl,
-            formats: ["markdown", "screenshot"],
-            onlyMainContent: true,
-            waitFor: config.waitFor || 3000,
-          }),
-        });
-        const scrapeData = await scrapeRes.json();
-        const md = scrapeData.data?.markdown || scrapeData.markdown || "";
-        const ss = scrapeData.data?.screenshot || scrapeData.screenshot || undefined;
-        console.log(`Scraped ${pageUrl}: ${md.length} chars${ss ? `, screenshot` : ""}`);
-        if (md.length > 50 || ss) {
-          allResults.push({ markdown: md, screenshot: ss });
+      for (const subUrl of subPages) {
+        try {
+          const subRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${firecrawlKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: subUrl,
+              formats: ["markdown"],
+              onlyMainContent: true,
+              waitFor: 3000,
+            }),
+          });
+          const subData = await subRes.json();
+          const md = subData.data?.markdown || subData.markdown || "";
+          if (md.length > 50) {
+            extraMarkdown += `\n\n---PAGE: ${subUrl}---\n${md}`;
+            console.log(`Sub-page ${subUrl}: ${md.length} chars`);
+          }
+        } catch (e) {
+          console.error(`Failed sub-page ${subUrl}:`, e);
         }
-      } catch (e) {
-        console.error(`Failed to scrape ${pageUrl}:`, e);
       }
-      await new Promise((r) => setTimeout(r, 500));
+    } catch (e) {
+      console.error("Map failed, using main page only:", e);
     }
 
-    // Combine all markdown, use the first available screenshot
-    const combinedMarkdown = allResults.map((r, i) => r.markdown || "").join("\n\n---PAGE---\n\n");
-    const firstScreenshot = allResults.find(r => r.screenshot)?.screenshot;
-    console.log(`Crawl finished: ${urlsToScrape.length} pages, ${combinedMarkdown.length} total chars${firstScreenshot ? ", has screenshot" : ""}`);
-    return { markdown: combinedMarkdown, screenshot: firstScreenshot };
+    return {
+      markdown: mainMarkdown + extraMarkdown,
+      screenshot: mainScreenshot,
+    };
   }
 
   // For both "scrape" and "screenshot" methods, use Firecrawl scrape

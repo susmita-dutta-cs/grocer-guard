@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Info, Globe, ShieldCheck, LogIn, LogOut, Link2, Save, Loader2 } from "lucide-react";
+import { useGroceryData } from "@/hooks/useGroceryData";
 import { useI18n, languageNames, languageFlags, type Language } from "@/hooks/useI18n";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,7 @@ type StoreConfig = {
 const SettingsPanel = () => {
   const { t, language, setLanguage } = useI18n();
   const { user, isAdmin, signOut } = useAuth();
+  const { products } = useGroceryData();
   const navigate = useNavigate();
 
   const [configs, setConfigs] = useState<StoreConfig[]>([]);
@@ -253,7 +255,7 @@ const SettingsPanel = () => {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-card-foreground">{t("settings.products")}</span>
-            <span className="text-sm font-medium text-primary">12+</span>
+            <span className="text-sm font-medium text-primary">{products.length}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-card-foreground">{t("settings.priceUpdates")}</span>

@@ -1,14 +1,16 @@
 import { Euro, TrendingDown, ShoppingCart } from "lucide-react";
-import { products, getLowestPrice, getHighestPrice } from "@/data/groceryData";
+import { getLowestPrice, getHighestPrice } from "@/data/groceryData";
+import { useGroceryData } from "@/hooks/useGroceryData";
 import { useI18n } from "@/hooks/useI18n";
 
 const StatsBar = () => {
   const { t } = useI18n();
+  const { products } = useGroceryData();
   const totalSavings = products.reduce((sum, p) => {
     return sum + (getHighestPrice(p).price - getLowestPrice(p).price);
   }, 0);
 
-  const avgSaving = totalSavings / products.length;
+  const avgSaving = products.length > 0 ? totalSavings / products.length : 0;
 
   const stats = [
     { icon: ShoppingCart, label: t("stats.products"), value: products.length.toString() },

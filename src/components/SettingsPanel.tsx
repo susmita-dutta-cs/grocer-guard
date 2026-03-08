@@ -255,7 +255,7 @@ const SettingsPanel = () => {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-card-foreground">{t("settings.products")}</span>
-            <span className="text-sm font-medium text-primary">12+</span>
+            <span className="text-sm font-medium text-primary">{products.length}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-card-foreground">{t("settings.priceUpdates")}</span>

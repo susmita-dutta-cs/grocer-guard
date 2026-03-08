@@ -66,9 +66,9 @@ async function scrapeStore(
   }
 
   if (config.method === "crawl") {
-    // Use Firecrawl crawl to discover and scrape multiple promo pages
-    console.log(`Starting crawl for ${storeId} with limit ${config.crawlLimit || 10}...`);
-    const crawlResponse = await fetch("https://api.firecrawl.dev/v1/crawl", {
+    // Step 1: Use map to quickly discover promo URLs
+    console.log(`Mapping ${storeId} promo URLs...`);
+    const mapResponse = await fetch("https://api.firecrawl.dev/v1/map", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${firecrawlKey}`,
@@ -76,54 +76,62 @@ async function scrapeStore(
       },
       body: JSON.stringify({
         url: config.url,
-        limit: config.crawlLimit || 10,
-        maxDepth: 2,
-        includePaths: config.includePaths,
-        scrapeOptions: {
-          formats: ["markdown"],
-          onlyMainContent: true,
-          waitFor: config.waitFor || 3000,
-        },
+        search: "promoties acties korting aanbieding",
+        limit: 20,
+        includeSubdomains: false,
       }),
     });
 
-    const crawlData = await crawlResponse.json();
-    if (!crawlResponse.ok) throw new Error(`Firecrawl crawl error: ${JSON.stringify(crawlData)}`);
+    const mapData = await mapResponse.json();
+    if (!mapResponse.ok) throw new Error(`Firecrawl map error: ${JSON.stringify(mapData)}`);
 
-    // Crawl returns an async job - poll for results
-    const crawlId = crawlData.id;
-    if (!crawlId) {
-      // Synchronous response
-      const pages = crawlData.data || [];
-      const markdown = pages.map((p: any) => p.markdown || "").join("\n\n---PAGE---\n\n");
-      console.log(`Crawl returned ${pages.length} pages synchronously`);
-      return { markdown };
+    // Filter relevant promo URLs
+    const allLinks: string[] = mapData.links || [];
+    const promoLinks = allLinks.filter((link: string) => {
+      const lower = link.toLowerCase();
+      return (config.includePaths || []).some((p: string) => {
+        const pattern = p.replace("*", "");
+        return lower.includes(pattern);
+      }) || lower.includes("/acties") || lower.includes("/promotie");
+    }).slice(0, config.crawlLimit || 5);
+
+    console.log(`Found ${allLinks.length} URLs, ${promoLinks.length} promo URLs for ${storeId}`);
+
+    // Step 2: Scrape the main page + top promo pages
+    const urlsToScrape = [config.url, ...promoLinks.filter((l: string) => l !== config.url)].slice(0, 6);
+    const allMarkdown: string[] = [];
+
+    for (const pageUrl of urlsToScrape) {
+      try {
+        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${firecrawlKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: pageUrl,
+            formats: ["markdown"],
+            onlyMainContent: true,
+            waitFor: config.waitFor || 3000,
+          }),
+        });
+        const scrapeData = await scrapeRes.json();
+        const md = scrapeData.data?.markdown || scrapeData.markdown || "";
+        if (md.length > 50) {
+          allMarkdown.push(`--- Page: ${pageUrl} ---\n${md}`);
+          console.log(`Scraped ${pageUrl}: ${md.length} chars`);
+        }
+      } catch (e) {
+        console.error(`Failed to scrape ${pageUrl}:`, e);
+      }
+      // Small delay between requests
+      await new Promise((r) => setTimeout(r, 500));
     }
 
-    // Poll for crawl completion (max 120 seconds)
-    let allMarkdown = "";
-    let totalPages = 0;
-    for (let i = 0; i < 24; i++) {
-      await new Promise((r) => setTimeout(r, 5000));
-      const statusRes = await fetch(`https://api.firecrawl.dev/v1/crawl/${crawlId}`, {
-        headers: { Authorization: `Bearer ${firecrawlKey}` },
-      });
-      const statusData = await statusRes.json();
-
-      if (statusData.status === "completed") {
-        const pages = statusData.data || [];
-        totalPages = pages.length;
-        allMarkdown = pages.map((p: any) => p.markdown || "").join("\n\n---PAGE---\n\n");
-        break;
-      }
-      if (statusData.status === "failed") {
-        throw new Error(`Crawl failed: ${statusData.error || "unknown"}`);
-      }
-      console.log(`Crawl ${crawlId} status: ${statusData.status}, completed: ${statusData.completed || 0}/${statusData.total || "?"}`);
-    }
-
-    console.log(`Crawl finished: ${totalPages} pages, ${allMarkdown.length} chars`);
-    return { markdown: allMarkdown };
+    const combinedMarkdown = allMarkdown.join("\n\n");
+    console.log(`Crawl finished: ${urlsToScrape.length} pages, ${combinedMarkdown.length} total chars`);
+    return { markdown: combinedMarkdown };
   }
 
   // For both "scrape" and "screenshot" methods, use Firecrawl scrape

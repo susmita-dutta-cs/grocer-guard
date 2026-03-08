@@ -47,7 +47,7 @@ const Index = () => {
               <span className="text-primary">Save every trip.</span>
             </h2>
             <p className="text-muted-foreground text-base max-w-md">
-              Find the lowest prices across Walmart, Kroger, Target & Aldi — all in one place.
+              Find the lowest prices across Aldi, Albert Heijn, Carrefour, Colruyt, Jumbo & Lidl — all in one place.
             </p>
           </div>
           <img

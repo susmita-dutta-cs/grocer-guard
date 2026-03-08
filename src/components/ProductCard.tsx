@@ -90,7 +90,7 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
       <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
         <span className="text-xs text-muted-foreground">Best deal</span>
         <span className="text-sm font-display font-bold text-accent-foreground">
-          {lowestStore?.name} — ${lowest.price.toFixed(2)}
+          {lowestStore?.name} — €{lowest.price.toFixed(2)}
         </span>
       </div>
     </div>

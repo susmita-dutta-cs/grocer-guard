@@ -133,6 +133,15 @@ const Index = () => {
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-5">
         {activeTab === "home" && (
+          selectedProduct ? (
+            <ProductDetail
+              product={selectedProduct}
+              relatedProducts={relatedProducts}
+              onBack={() => setSelectedProduct(null)}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
+            />
+          ) : (
           <>
             <section className="relative bg-gradient-to-br from-primary/15 via-card to-card rounded-2xl border border-border overflow-hidden p-5">
               <div className="flex items-center gap-4">
@@ -148,17 +157,39 @@ const Index = () => {
               </div>
             </section>
 
-            <StatsBar />
+            <SearchBar value={search} onChange={setSearch} />
 
-            <section className="space-y-5">
-              <RecommendationRow recommendations={deals} reason="deal_trending" />
-              <RecommendationRow recommendations={bestValue} reason="best_value" />
-              {personalized.length > 0 && (
-                <RecommendationRow recommendations={personalized} reason="personalized" />
-              )}
-              <PromotionsSection />
-            </section>
+            {search.trim() ? (
+              <div className="space-y-3">
+                {filtered.slice(0, 20).map((product, i) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    index={i}
+                    onView={() => handleProductSelect(product)}
+                    isFavorite={isFavorite(product.id)}
+                    onToggleFavorite={() => toggleFavorite(product.id)}
+                  />
+                ))}
+                {filtered.length === 0 && (
+                  <p className="text-center text-xs text-muted-foreground py-8">No products found</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <StatsBar />
+                <section className="space-y-5">
+                  <RecommendationRow recommendations={deals} reason="deal_trending" />
+                  <RecommendationRow recommendations={bestValue} reason="best_value" />
+                  {personalized.length > 0 && (
+                    <RecommendationRow recommendations={personalized} reason="personalized" />
+                  )}
+                  <PromotionsSection />
+                </section>
+              </>
+            )}
           </>
+          )
         )}
 
         {activeTab === "search" && (

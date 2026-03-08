@@ -148,6 +148,8 @@ const Index = () => {
               </div>
             </section>
 
+            <SearchBar value={search} onChange={setSearch} />
+
             <StatsBar />
 
             <section className="space-y-5">

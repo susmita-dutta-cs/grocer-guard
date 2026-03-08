@@ -2,6 +2,7 @@ import type { SmartBasketResult } from "@/hooks/useRecommendations";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { ShoppingCart, Check, Plus } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
+import { useProductName } from "@/hooks/useProductName";
 
 const storeColorMap: Record<string, string> = {
   aldi: "bg-store-1",

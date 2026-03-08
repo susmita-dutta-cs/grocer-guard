@@ -275,13 +275,20 @@ const AdminPanel = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-6 w-6 text-primary animate-spin" />
         <p className="text-muted-foreground">Loading...</p>
+        <button onClick={() => navigate("/login")} className="text-xs text-primary underline">
+          Go to login
+        </button>
       </div>
     );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin) {
+    navigate("/login");
+    return null;
+  }
 
   const isRunning = scrapeProgress.status === "running";
   const isFolderRunning = folderProgress.status === "running";

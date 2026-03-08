@@ -6,19 +6,30 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const STORE_PROMO_URLS: Record<string, { url: string; method: "scrape" | "search" }> = {
-  aldi: { url: "https://www.aldi.be/nl/onze-aanbiedingen.html", method: "scrape" },
-  albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape" },
-  carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape" },
-  colruyt: { url: "colruyt promoties folder deze week site:colruyt.be", method: "search" },
-  jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape" },
-  lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "scrape" },
+interface StoreConfig {
+  url: string;
+  method: "scrape" | "search" | "screenshot";
+  waitFor?: number;
+}
+
+const STORE_PROMO_URLS: Record<string, StoreConfig> = {
+  aldi: { url: "https://www.aldi.be/nl/onze-aanbiedingen.html", method: "scrape", waitFor: 3000 },
+  albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape", waitFor: 3000 },
+  carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
+  colruyt: { url: "https://www.colruyt.be/nl/acties", method: "screenshot", waitFor: 8000 },
+  jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape", waitFor: 3000 },
+  lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "screenshot", waitFor: 5000 },
 };
 
-async function scrapeWithFirecrawl(
+interface ScrapeResult {
+  markdown?: string;
+  screenshot?: string; // base64 image
+}
+
+async function scrapeStore(
   firecrawlKey: string,
   storeId: string
-): Promise<string> {
+): Promise<ScrapeResult> {
   const config = STORE_PROMO_URLS[storeId];
   if (!config) throw new Error(`Unknown store: ${storeId}`);
 
@@ -40,34 +51,94 @@ async function scrapeWithFirecrawl(
     const data = await response.json();
     if (!response.ok) throw new Error(`Firecrawl search error: ${JSON.stringify(data)}`);
     const results = data.data || [];
-    return results.map((r: any) => `${r.title || ""}\n${r.description || ""}\n${r.markdown || ""}`).join("\n---\n");
-  } else {
-    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${firecrawlKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url: config.url,
-        formats: ["markdown"],
-        onlyMainContent: true,
-        waitFor: 3000,
-      }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(`Firecrawl scrape error: ${JSON.stringify(data)}`);
-    return data.data?.markdown || data.markdown || "";
+    const markdown = results
+      .map((r: any) => `${r.title || ""}\n${r.description || ""}\n${r.markdown || ""}`)
+      .join("\n---\n");
+    return { markdown };
   }
+
+  // For both "scrape" and "screenshot" methods, use Firecrawl scrape
+  const formats = config.method === "screenshot"
+    ? ["markdown", "screenshot"]
+    : ["markdown"];
+
+  const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: config.url,
+      formats,
+      onlyMainContent: true,
+      waitFor: config.waitFor || 3000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Firecrawl scrape error: ${JSON.stringify(data)}`);
+
+  return {
+    markdown: data.data?.markdown || data.markdown || "",
+    screenshot: data.data?.screenshot || data.screenshot || undefined,
+  };
 }
 
-async function extractPromosWithAI(
+const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgian supermarkets. Extract ONLY food and grocery product promotions from the provided content. Return a JSON array of objects with these fields:
+- product_name: the product name (in Dutch)
+- discount_type: the type of discount (e.g. "1+1 gratis", "25% korting", "2e halve prijs", "€X korting", "3+1 gratis", etc.)
+- promo_price: the promotional price as a number (null if not available)
+- original_price: the original price as a number (null if not available)
+- category: product category in English (e.g. "dairy", "meat", "vegetables", "fruit", "beverages", "bakery", "snacks", "household", "frozen", "other")
+
+Only include food/grocery items. Skip non-food items like clothing, furniture, electronics, tools.
+Return ONLY the JSON array, no other text. If you can't find any promotions, return an empty array [].`;
+
+async function extractPromosWithVision(
   lovableApiKey: string,
   storeName: string,
-  markdown: string
+  scrapeResult: ScrapeResult
 ): Promise<any[]> {
-  // Truncate markdown to avoid token limits
-  const truncated = markdown.substring(0, 15000);
+  const messages: any[] = [
+    { role: "system", content: EXTRACTION_PROMPT },
+  ];
+
+  // Build user message with both text and image if available
+  if (scrapeResult.screenshot) {
+    // Use vision: send image + any available markdown context
+    const userContent: any[] = [];
+
+    if (scrapeResult.markdown && scrapeResult.markdown.length > 100) {
+      userContent.push({
+        type: "text",
+        text: `Extract grocery promotions from this ${storeName} weekly folder. Here is the text content:\n\n${scrapeResult.markdown.substring(0, 10000)}`,
+      });
+    } else {
+      userContent.push({
+        type: "text",
+        text: `Extract grocery promotions from this ${storeName} weekly folder image. Read all visible product names, prices, and discount labels.`,
+      });
+    }
+
+    userContent.push({
+      type: "image_url",
+      image_url: {
+        url: scrapeResult.screenshot.startsWith("data:")
+          ? scrapeResult.screenshot
+          : `data:image/png;base64,${scrapeResult.screenshot}`,
+      },
+    });
+
+    messages.push({ role: "user", content: userContent });
+  } else {
+    // Text-only extraction
+    const truncated = (scrapeResult.markdown || "").substring(0, 15000);
+    messages.push({
+      role: "user",
+      content: `Extract grocery promotions from this ${storeName} weekly folder content:\n\n${truncated}`,
+    });
+  }
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -77,31 +148,21 @@ async function extractPromosWithAI(
     },
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content: `You are a grocery promotion data extractor. Extract ONLY food and grocery product promotions from the provided content. Return a JSON array of objects with these fields:
-- product_name: the product name (in Dutch)
-- discount_type: the type of discount (e.g. "1+1 gratis", "25% korting", "2e halve prijs", "€X korting", etc.)
-- promo_price: the promotional price as a number (null if not available)
-- original_price: the original price as a number (null if not available)  
-- category: product category in English (e.g. "dairy", "meat", "vegetables", "fruit", "beverages", "bakery", "snacks", "household", "frozen", "other")
-
-Only include food/grocery items. Skip non-food items like clothing, furniture, electronics. Return ONLY the JSON array, no other text.`,
-        },
-        {
-          role: "user",
-          content: `Extract grocery promotions from this ${storeName} weekly folder content:\n\n${truncated}`,
-        },
-      ],
+      messages,
       temperature: 0.1,
       max_tokens: 4000,
     }),
   });
 
   if (!response.ok) {
+    if (response.status === 429) {
+      throw new Error("Rate limit exceeded. Please try again later.");
+    }
+    if (response.status === 402) {
+      throw new Error("AI credits exhausted. Please add funds to your workspace.");
+    }
     const err = await response.text();
-    throw new Error(`AI extraction failed: ${err}`);
+    throw new Error(`AI extraction failed [${response.status}]: ${err}`);
   }
 
   const data = await response.json();
@@ -109,12 +170,15 @@ Only include food/grocery items. Skip non-food items like clothing, furniture, e
 
   // Parse JSON from response (might be wrapped in ```json blocks)
   const jsonMatch = content.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) return [];
+  if (!jsonMatch) {
+    console.log("No JSON array found in AI response for", storeName, "- response:", content.substring(0, 200));
+    return [];
+  }
 
   try {
     return JSON.parse(jsonMatch[0]);
   } catch {
-    console.error("Failed to parse AI response:", content);
+    console.error("Failed to parse AI response:", content.substring(0, 500));
     return [];
   }
 }
@@ -123,7 +187,6 @@ async function matchProducts(
   supabase: any,
   promos: any[]
 ): Promise<any[]> {
-  // Fetch all products for matching
   const { data: products } = await supabase
     .from("products")
     .select("id, name, name_nl, name_fr, category");
@@ -199,28 +262,34 @@ Deno.serve(async (req) => {
     }
 
     const storeIds = storeId ? [storeId] : Object.keys(STORE_PROMO_URLS);
-    const results: Record<string, { promotions: number; matched: number; error?: string }> = {};
+    const results: Record<string, { promotions: number; matched: number; method: string; error?: string }> = {};
 
     for (const sid of storeIds) {
       try {
-        console.log(`Scraping folder for ${sid}...`);
+        const config = STORE_PROMO_URLS[sid];
+        console.log(`Scraping folder for ${sid} using ${config.method}...`);
 
-        // Step 1: Scrape the promo page
-        const markdown = await scrapeWithFirecrawl(firecrawlKey, sid);
-        if (!markdown || markdown.length < 50) {
-          results[sid] = { promotions: 0, matched: 0, error: "No content found" };
+        // Step 1: Scrape the promo page (with screenshot if configured)
+        const scrapeResult = await scrapeStore(firecrawlKey, sid);
+
+        const hasContent = (scrapeResult.markdown && scrapeResult.markdown.length > 100) || scrapeResult.screenshot;
+        if (!hasContent) {
+          results[sid] = { promotions: 0, matched: 0, method: config.method, error: "No content found" };
           continue;
         }
 
-        console.log(`Got ${markdown.length} chars for ${sid}, extracting promos with AI...`);
+        console.log(
+          `${sid}: got ${scrapeResult.markdown?.length || 0} chars markdown` +
+          `${scrapeResult.screenshot ? `, screenshot (${Math.round(scrapeResult.screenshot.length / 1024)}KB)` : ""}`
+        );
 
-        // Step 2: Extract promotions with AI
+        // Step 2: Extract promotions with AI (vision-capable for screenshots)
         const storeName = sid.replace("_", " ");
-        const promos = await extractPromosWithAI(lovableApiKey, storeName, markdown);
+        const promos = await extractPromosWithVision(lovableApiKey, storeName, scrapeResult);
         console.log(`AI extracted ${promos.length} promos for ${sid}`);
 
         if (promos.length === 0) {
-          results[sid] = { promotions: 0, matched: 0 };
+          results[sid] = { promotions: 0, matched: 0, method: config.method };
           continue;
         }
 
@@ -249,7 +318,7 @@ Deno.serve(async (req) => {
           valid_until: validUntil.toISOString().split("T")[0],
           category: p.category || null,
           matched_product_id: p.matched_product_id || null,
-          source_url: STORE_PROMO_URLS[sid]?.url || null,
+          source_url: config.url,
         }));
 
         const { error: insertErr } = await supabase
@@ -258,7 +327,7 @@ Deno.serve(async (req) => {
 
         if (insertErr) {
           console.error(`Insert error for ${sid}:`, insertErr);
-          results[sid] = { promotions: promos.length, matched: 0, error: insertErr.message };
+          results[sid] = { promotions: promos.length, matched: 0, method: config.method, error: insertErr.message };
           continue;
         }
 
@@ -268,13 +337,11 @@ Deno.serve(async (req) => {
           .map((p: any) => p.matched_product_id);
 
         if (matchedIds.length > 0) {
-          // Reset all on_sale for this store
           await supabase
             .from("product_prices")
             .update({ on_sale: false })
             .eq("store_id", sid);
 
-          // Set matched products as on_sale
           for (const pid of matchedIds) {
             await supabase
               .from("product_prices")
@@ -285,15 +352,15 @@ Deno.serve(async (req) => {
         }
 
         const matchedCount = matchedPromos.filter((p: any) => p.matched_product_id).length;
-        results[sid] = { promotions: promos.length, matched: matchedCount };
-        console.log(`${sid}: ${promos.length} promos, ${matchedCount} matched`);
+        results[sid] = { promotions: promos.length, matched: matchedCount, method: config.method };
+        console.log(`${sid}: ${promos.length} promos, ${matchedCount} matched (${config.method})`);
 
         // Rate limit between stores
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 1500));
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error(`Error scraping ${sid}:`, msg);
-        results[sid] = { promotions: 0, matched: 0, error: msg };
+        results[sid] = { promotions: 0, matched: 0, method: STORE_PROMO_URLS[sid]?.method || "unknown", error: msg };
       }
     }
 

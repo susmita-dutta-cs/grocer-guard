@@ -1,9 +1,5 @@
 {
   "appId": "app.lovable.84c520d4ebe3450c8ecd27405c655233",
   "appName": "GrocerySaver",
-  "webDir": "dist",
-  "server": {
-    "url": "https://84c520d4-ebe3-450c-8ecd-27405c655233.lovableproject.com?forceHideBadge=true",
-    "cleartext": true
-  }
+  "webDir": "dist"
 }

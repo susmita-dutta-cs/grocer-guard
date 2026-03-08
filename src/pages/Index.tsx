@@ -78,6 +78,7 @@ const Index = () => {
               {personalized.length > 0 && (
                 <RecommendationRow recommendations={personalized} reason="personalized" />
               )}
+              <PromotionsSection />
             </section>
 
             <div className="space-y-4">

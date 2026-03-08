@@ -155,7 +155,7 @@ const ProductCard = ({ product, index, onView, isFavorite, onToggleFavorite }: P
       {relatedCount > 0 && (
         <div className="mt-2.5 pt-2.5 border-t border-border flex items-center justify-between">
           <span className="text-[10px] text-muted-foreground">
-            {relatedCount} other brand{relatedCount !== 1 ? "s" : ""} in {product.category}
+            {relatedCount} other brand{relatedCount !== 1 ? "s" : ""} available
           </span>
           <span className="text-[10px] font-medium text-primary">Compare →</span>
         </div>

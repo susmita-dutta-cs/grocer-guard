@@ -53,7 +53,7 @@ const ProductDetail = ({
               {getProductName(product)}
             </h2>
             <p className="text-[10px] text-muted-foreground">
-              {sorted.length} brand{sorted.length !== 1 ? "s" : ""} available · {product.unit}
+              {sorted.length} brand{sorted.length !== 1 ? "s" : ""} · {product.unit}
             </p>
           </div>
         </div>

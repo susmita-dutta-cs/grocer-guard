@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
         let allPromos: any[] = [];
 
         if (config.method === "issuu") {
-          // Issuu flipbook: extract page image URLs and process each with vision
+          // Issuu flipbook: extract page image URLs and process with vision
           const pageUrls = await extractIssuuPages(firecrawlKey, config.url);
           console.log(`Found ${pageUrls.length} Issuu pages for ${sid}`);
 
@@ -542,7 +542,18 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Process 4 page images per single AI call to reduce total calls
+          // Clear old promotions FIRST so partial results are saved even on timeout
+          await supabase.from("weekly_promotions").delete().eq("store_id", sid);
+
+          const now = new Date();
+          const validFrom = new Date(now);
+          validFrom.setDate(validFrom.getDate() - validFrom.getDay() + 1);
+          const validUntil = new Date(validFrom);
+          validUntil.setDate(validUntil.getDate() + 6);
+
+          let totalInserted = 0;
+
+          // Process 4 page images per single AI call
           const pagesPerCall = 4;
           for (let i = 0; i < pageUrls.length; i += pagesPerCall) {
             const batchUrls = pageUrls.slice(i, i + pagesPerCall);
@@ -556,18 +567,44 @@ Deno.serve(async (req) => {
                 pageNumbers
               );
               console.log(`Pages ${pageNumbers.join(",")}: extracted ${batchPromos.length} promos`);
-              allPromos.push(...batchPromos);
+
+              if (batchPromos.length > 0) {
+                // Match and save immediately
+                const matched = await matchProducts(supabase, batchPromos);
+                const inserts = matched.map((p: any) => ({
+                  store_id: sid,
+                  product_name: p.product_name || "Unknown",
+                  brand: p.brand || null,
+                  quantity: p.quantity || null,
+                  discount_type: p.discount_type || null,
+                  promo_price: p.promo_price || null,
+                  original_price: p.original_price || null,
+                  valid_from: p.valid_from || validFrom.toISOString().split("T")[0],
+                  valid_until: p.valid_until || validUntil.toISOString().split("T")[0],
+                  category: p.category || null,
+                  matched_product_id: p.matched_product_id || null,
+                  source_url: config.url,
+                }));
+                await supabase.from("weekly_promotions").insert(inserts);
+                totalInserted += inserts.length;
+                allPromos.push(...batchPromos);
+                console.log(`Saved ${inserts.length} promos (total: ${totalInserted})`);
+              }
             } catch (e) {
               console.error(`Error on pages ${pageNumbers.join(",")}:`, e);
             }
 
             // Rate limit between calls
             if (i + pagesPerCall < pageUrls.length) {
-              await new Promise((r) => setTimeout(r, 2000));
+              await new Promise((r) => setTimeout(r, 1500));
             }
           }
 
-          console.log(`Total promos extracted from Issuu: ${allPromos.length}`);
+          const matchedCount = allPromos.filter((p: any) => p.matched_product_id).length;
+          results[sid] = { promotions: allPromos.length, matched: matchedCount, method: config.method };
+          console.log(`${sid}: ${allPromos.length} total promos, ${matchedCount} matched`);
+          // Skip the normal insert flow below since we already saved
+          continue;
         } else {
           // Standard scrape/screenshot flow
           const scrapeResult = await scrapeStore(firecrawlKey, sid);

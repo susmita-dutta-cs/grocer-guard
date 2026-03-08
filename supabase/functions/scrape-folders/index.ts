@@ -455,26 +455,72 @@ Deno.serve(async (req) => {
         const config = STORE_PROMO_URLS[sid];
         console.log(`Scraping folder for ${sid} using ${config.method}...`);
 
-        // Step 1: Scrape the promo page (with screenshot if configured)
-        const scrapeResult = await scrapeStore(firecrawlKey, sid);
+        let allPromos: any[] = [];
 
-        const hasContent = (scrapeResult.markdown && scrapeResult.markdown.length > 100) || scrapeResult.screenshot;
-        if (!hasContent) {
-          results[sid] = { promotions: 0, matched: 0, method: config.method, error: "No content found" };
-          continue;
+        if (config.method === "issuu") {
+          // Issuu flipbook: extract page image URLs and process each with vision
+          const pageUrls = await extractIssuuPages(firecrawlKey, config.url);
+          console.log(`Found ${pageUrls.length} Issuu pages for ${sid}`);
+
+          if (pageUrls.length === 0) {
+            results[sid] = { promotions: 0, matched: 0, method: config.method, error: "No Issuu pages found" };
+            continue;
+          }
+
+          // Process pages in batches of 3 to avoid rate limits
+          const batchSize = 3;
+          for (let i = 0; i < pageUrls.length; i += batchSize) {
+            const batch = pageUrls.slice(i, i + batchSize);
+            const batchPromises = batch.map(async (pageUrl, idx) => {
+              const pageNum = i + idx + 2; // pages start at 2 (skip cover)
+              try {
+                console.log(`Processing Issuu page ${pageNum}...`);
+                const pagePromos = await extractPromosWithVision(
+                  lovableApiKey,
+                  `colruyt (folder page ${pageNum})`,
+                  { screenshot: pageUrl }
+                );
+                console.log(`Page ${pageNum}: ${pagePromos.length} promos`);
+                return pagePromos;
+              } catch (e) {
+                console.error(`Error on page ${pageNum}:`, e);
+                return [];
+              }
+            });
+
+            const batchResults = await Promise.all(batchPromises);
+            for (const promos of batchResults) {
+              allPromos.push(...promos);
+            }
+
+            // Rate limit between batches
+            if (i + batchSize < pageUrls.length) {
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          }
+
+          console.log(`Total promos extracted from Issuu: ${allPromos.length}`);
+        } else {
+          // Standard scrape/screenshot flow
+          const scrapeResult = await scrapeStore(firecrawlKey, sid);
+
+          const hasContent = (scrapeResult.markdown && scrapeResult.markdown.length > 100) || scrapeResult.screenshot;
+          if (!hasContent) {
+            results[sid] = { promotions: 0, matched: 0, method: config.method, error: "No content found" };
+            continue;
+          }
+
+          console.log(
+            `${sid}: got ${scrapeResult.markdown?.length || 0} chars markdown` +
+            `${scrapeResult.screenshot ? `, screenshot (${Math.round(scrapeResult.screenshot.length / 1024)}KB)` : ""}`
+          );
+
+          const storeName = sid.replace("_", " ");
+          allPromos = await extractPromosWithVision(lovableApiKey, storeName, scrapeResult);
+          console.log(`AI extracted ${allPromos.length} promos for ${sid}`);
         }
 
-        console.log(
-          `${sid}: got ${scrapeResult.markdown?.length || 0} chars markdown` +
-          `${scrapeResult.screenshot ? `, screenshot (${Math.round(scrapeResult.screenshot.length / 1024)}KB)` : ""}`
-        );
-
-        // Step 2: Extract promotions with AI (vision-capable for screenshots)
-        const storeName = sid.replace("_", " ");
-        const promos = await extractPromosWithVision(lovableApiKey, storeName, scrapeResult);
-        console.log(`AI extracted ${promos.length} promos for ${sid}`);
-
-        if (promos.length === 0) {
+        if (allPromos.length === 0) {
           results[sid] = { promotions: 0, matched: 0, method: config.method };
           continue;
         }

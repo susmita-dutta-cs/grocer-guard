@@ -1,4 +1,5 @@
 import { categories } from "@/data/groceryData";
+import { useI18n, categoryKeyMap } from "@/hooks/useI18n";
 
 interface CategoryFilterProps {
   selected: string;
@@ -6,6 +7,7 @@ interface CategoryFilterProps {
 }
 
 const CategoryFilter = ({ selected, onSelect }: CategoryFilterProps) => {
+  const { t } = useI18n();
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
       {categories.map((cat) => (
@@ -18,7 +20,7 @@ const CategoryFilter = ({ selected, onSelect }: CategoryFilterProps) => {
               : "bg-card text-muted-foreground border border-border hover:border-primary/30 hover:text-foreground"
           }`}
         >
-          {cat}
+          {t(categoryKeyMap[cat] || cat)}
         </button>
       ))}
     </div>

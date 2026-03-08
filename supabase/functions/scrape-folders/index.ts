@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface StoreConfig {
   url: string;
-  method: "scrape" | "search" | "screenshot" | "crawl";
+  method: "scrape" | "search" | "screenshot" | "crawl" | "issuu";
   waitFor?: number;
   crawlLimit?: number;
   includePaths?: string[];

@@ -42,11 +42,12 @@ const Index = () => {
     });
   }, [search, category, products, language, getProductName]);
 
-  // Find related products (same category) for the selected product
+  // Find related products (same base product name) for the selected product
   const relatedProducts = useMemo(() => {
     if (!selectedProduct) return [];
+    const baseName = selectedProduct.name.toLowerCase().trim();
     return products.filter(
-      (p) => p.id !== selectedProduct.id && p.category === selectedProduct.category
+      (p) => p.id !== selectedProduct.id && p.name.toLowerCase().trim() === baseName
     );
   }, [selectedProduct, products]);
 

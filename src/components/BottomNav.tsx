@@ -22,7 +22,7 @@ const tabKeys = {
 
 const BottomNav = ({ active, onNavigate, basketCount = 0, favoritesCount = 0 }: BottomNavProps) => {
   const { t } = useI18n();
-  const tabs = ["home", "search", "basket", "settings"] as const;
+  const tabs = ["home", "basket", "settings"] as const;
 
   const totalBasketCount = basketCount + favoritesCount;
 

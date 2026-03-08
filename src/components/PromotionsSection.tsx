@@ -1,0 +1,145 @@
+import { useState } from "react";
+import { Newspaper, ChevronRight } from "lucide-react";
+import { usePromotions } from "@/hooks/usePromotions";
+import { stores } from "@/data/groceryData";
+
+const categoryEmoji: Record<string, string> = {
+  beverages: "🥤",
+  dairy: "🥛",
+  fruit: "🍎",
+  vegetables: "🥦",
+  meat: "🥩",
+  snacks: "🍪",
+  household: "🧹",
+  "personal care": "🪥",
+  "canned goods": "🥫",
+  pantry: "🍝",
+  frozen: "🧊",
+  bakery: "🍞",
+  vegetarian: "🌱",
+  other: "🛒",
+};
+
+const PromotionsSection = () => {
+  const { promotions, isLoading } = usePromotions();
+  const [selectedStore, setSelectedStore] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  if (isLoading || promotions.length === 0) return null;
+
+  // Get unique stores that have promotions
+  const storeIds = [...new Set(promotions.map((p) => p.store_id))];
+
+  const filtered = selectedStore
+    ? promotions.filter((p) => p.store_id === selectedStore)
+    : promotions;
+
+  const displayed = expanded ? filtered : filtered.slice(0, 6);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Newspaper className="h-5 w-5 text-secondary" />
+        <h3 className="font-display font-semibold text-foreground">Weekly Deals</h3>
+        <span className="text-[10px] text-muted-foreground ml-auto">
+          {promotions.length} promotions
+        </span>
+      </div>
+
+      {/* Store filter chips */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        <button
+          onClick={() => setSelectedStore(null)}
+          className={`text-[11px] px-3 py-1.5 rounded-lg border whitespace-nowrap transition-all ${
+            !selectedStore
+              ? "bg-secondary text-secondary-foreground border-secondary"
+              : "bg-card text-muted-foreground border-border hover:border-secondary/30"
+          }`}
+        >
+          All stores
+        </button>
+        {storeIds.map((sid) => {
+          const store = stores.find((s) => s.id === sid);
+          return (
+            <button
+              key={sid}
+              onClick={() => setSelectedStore(sid === selectedStore ? null : sid)}
+              className={`text-[11px] px-3 py-1.5 rounded-lg border whitespace-nowrap transition-all ${
+                selectedStore === sid
+                  ? "bg-secondary text-secondary-foreground border-secondary"
+                  : "bg-card text-muted-foreground border-border hover:border-secondary/30"
+              }`}
+            >
+              {store?.name || sid}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Promotion cards */}
+      <div className="grid grid-cols-2 gap-2">
+        {displayed.map((promo) => {
+          const store = stores.find((s) => s.id === promo.store_id);
+          const emoji = categoryEmoji[promo.category || "other"] || "🛒";
+
+          return (
+            <div
+              key={promo.id}
+              className="bg-card rounded-xl border border-border p-3 space-y-1.5 hover:border-secondary/30 transition-all"
+            >
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-xl">{emoji}</span>
+                {promo.discount_type && (
+                  <span className="text-[9px] font-semibold bg-secondary/15 text-secondary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    {promo.discount_type}
+                  </span>
+                )}
+              </div>
+              <p className="font-medium text-xs text-card-foreground leading-tight line-clamp-2">
+                {promo.product_name}
+              </p>
+              {promo.brand && (
+                <p className="text-[10px] text-primary/70 font-medium">{promo.brand}</p>
+              )}
+              {promo.quantity && (
+                <p className="text-[10px] text-muted-foreground">{promo.quantity}</p>
+              )}
+              <div className="flex items-baseline gap-1.5 pt-0.5">
+                {promo.promo_price != null && (
+                  <span className="text-sm font-display font-bold text-accent-foreground">
+                    €{promo.promo_price.toFixed(2)}
+                  </span>
+                )}
+                {promo.original_price != null && (
+                  <span className={`text-[10px] ${promo.promo_price != null ? "line-through text-muted-foreground" : "font-semibold text-card-foreground"}`}>
+                    €{promo.original_price.toFixed(2)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between pt-0.5">
+                <span className="text-[9px] text-muted-foreground">{store?.name}</span>
+                {promo.valid_until && (
+                  <span className="text-[9px] text-muted-foreground">
+                    tot {new Date(promo.valid_until).toLocaleDateString("nl-BE", { day: "2-digit", month: "2-digit" })}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {filtered.length > 6 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-center gap-1 text-xs text-primary font-medium py-2 hover:bg-primary/5 rounded-lg transition-colors"
+        >
+          {expanded ? "Show less" : `Show all ${filtered.length} deals`}
+          <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} />
+        </button>
+      )}
+    </div>
+  );
+};
+
+export default PromotionsSection;

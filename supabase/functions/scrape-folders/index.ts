@@ -20,10 +20,8 @@ const STORE_PROMO_URLS: Record<string, StoreConfig> = {
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
   colruyt: {
     url: "https://www.colruyt.be/nl/acties",
-    method: "crawl",
-    waitFor: 5000,
-    crawlLimit: 3,
-    includePaths: ["/nl/acties"],
+    method: "screenshot",
+    waitFor: 8000,
   },
   jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape", waitFor: 3000 },
   lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "screenshot", waitFor: 5000 },

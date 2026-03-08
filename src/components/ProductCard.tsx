@@ -39,9 +39,9 @@ const ProductCard = ({ product, index, onView }: ProductCardProps) => {
           </div>
           <div>
             <h3 className="font-display font-semibold text-sm text-card-foreground leading-tight">
-              {product.name}
+              {translatedName}
             </h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{product.unit}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{translatedUnit}</p>
           </div>
         </div>
         {savings > 10 && (

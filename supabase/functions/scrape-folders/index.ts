@@ -644,7 +644,7 @@ Deno.serve(async (req) => {
           continue;
         } else {
           // Standard scrape/screenshot flow
-          const scrapeResult = await scrapeStore(firecrawlKey, sid);
+          const scrapeResult = await scrapeStore(firecrawlKey, sid, STORE_PROMO_URLS);
 
           const hasContent = (scrapeResult.markdown && scrapeResult.markdown.length > 100) || scrapeResult.screenshot;
           if (!hasContent) {

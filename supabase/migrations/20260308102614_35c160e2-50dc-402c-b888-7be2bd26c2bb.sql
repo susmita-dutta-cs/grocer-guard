@@ -1,0 +1,1 @@
+ALTER TABLE public.product_prices ADD CONSTRAINT product_prices_product_store_unique UNIQUE (product_id, store_id);

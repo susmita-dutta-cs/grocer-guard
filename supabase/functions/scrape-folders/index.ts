@@ -12,7 +12,7 @@ const STORE_PROMO_URLS: Record<string, { url: string; method: "scrape" | "search
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape" },
   colruyt: { url: "colruyt promoties folder deze week site:colruyt.be", method: "search" },
   jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape" },
-  lidl: { url: "https://www.lidl.be/c/nl-BE/online-folders-magazines/s10008101", method: "scrape" },
+  lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "scrape" },
 };
 
 async function scrapeWithFirecrawl(

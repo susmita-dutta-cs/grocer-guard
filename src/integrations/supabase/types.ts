@@ -193,6 +193,62 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_promotions: {
+        Row: {
+          category: string | null
+          created_at: string
+          discount_type: string | null
+          id: string
+          matched_product_id: string | null
+          original_price: number | null
+          product_name: string
+          promo_price: number | null
+          scraped_at: string
+          source_url: string | null
+          store_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          discount_type?: string | null
+          id?: string
+          matched_product_id?: string | null
+          original_price?: number | null
+          product_name: string
+          promo_price?: number | null
+          scraped_at?: string
+          source_url?: string | null
+          store_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          discount_type?: string | null
+          id?: string
+          matched_product_id?: string | null
+          original_price?: number | null
+          product_name?: string
+          promo_price?: number | null
+          scraped_at?: string
+          source_url?: string | null
+          store_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_promotions_matched_product_id_fkey"
+            columns: ["matched_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

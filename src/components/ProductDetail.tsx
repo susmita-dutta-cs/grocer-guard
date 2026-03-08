@@ -27,6 +27,22 @@ function isHomeBrandForStore(brand: string, storeId: string): boolean {
   return brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()));
 }
 
+function isAnyHomeBrand(brand: string | undefined): boolean {
+  if (!brand) return false;
+  return Object.values(storeHomeBrands).some((brands) =>
+    brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()))
+  );
+}
+
+function getHomeBrandStoreId(brand: string): string | undefined {
+  for (const [storeId, brands] of Object.entries(storeHomeBrands)) {
+    if (brands.some((hb) => brand.toLowerCase().includes(hb.toLowerCase()))) {
+      return storeId;
+    }
+  }
+  return undefined;
+}
+
 interface ProductDetailProps {
   product: Product;
   relatedProducts: Product[];

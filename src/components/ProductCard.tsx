@@ -116,12 +116,24 @@ const ProductCard = ({ product, index, onView, isFavorite, onToggleFavorite }: P
             <p className="text-[10px] text-muted-foreground mt-0.5">{translatedUnit}</p>
           </div>
         </div>
-        {savings > 10 && (
-          <span className="flex items-center gap-1 bg-primary/15 text-primary text-[10px] font-bold px-2 py-1 rounded-full">
-            <TrendingDown className="h-3 w-3" />
-            {savings}%
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${isFavorite ? "fill-primary text-primary" : "text-muted-foreground"}`}
+              />
+            </button>
+          )}
+          {savings > 10 && (
+            <span className="flex items-center gap-1 bg-primary/15 text-primary text-[10px] font-bold px-2 py-1 rounded-full">
+              <TrendingDown className="h-3 w-3" />
+              {savings}%
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1.5">

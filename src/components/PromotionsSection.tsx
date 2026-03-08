@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Newspaper, ChevronRight, Heart } from "lucide-react";
 import { usePromotions } from "@/hooks/usePromotions";
-import { useFavorites } from "@/hooks/useFavorites";
+import { usePromotionFavorites } from "@/hooks/usePromotionFavorites";
 import { stores } from "@/data/groceryData";
 
 // Normalize store_id from scraped data (hyphens) to app format (underscores)
@@ -31,7 +31,7 @@ const categoryEmoji: Record<string, string> = {
 
 const PromotionsSection = () => {
   const { promotions, isLoading } = usePromotions();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite } = usePromotionFavorites();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -142,15 +142,13 @@ const PromotionsSection = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (promo.matched_product_id) {
-                        toggleFavorite(promo.matched_product_id);
-                      }
+                      toggleFavorite(promo.id);
                     }}
-                    className={`p-1.5 rounded-lg transition-colors ${promo.matched_product_id ? "hover:bg-muted" : "opacity-40 cursor-default"}`}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-muted"
                   >
                     <Heart
                       className={`h-4 w-4 transition-colors ${
-                        promo.matched_product_id && isFavorite(promo.matched_product_id) ? "fill-primary text-primary" : "text-muted-foreground"
+                        isFavorite(promo.id) ? "fill-primary text-primary" : "text-muted-foreground"
                       }`}
                     />
                   </button>

@@ -5,11 +5,16 @@ import SearchBar from "@/components/SearchBar";
 import CategoryFilter from "@/components/CategoryFilter";
 import ProductCard from "@/components/ProductCard";
 import StatsBar from "@/components/StatsBar";
+import RecommendationRow from "@/components/RecommendationRow";
+import SmartBasket from "@/components/SmartBasket";
 import { products } from "@/data/groceryData";
+import { useRecommendations } from "@/hooks/useRecommendations";
 
 const Index = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const { bestValue, deals, personalized, smartBasket, basketIds, toggleBasketItem, trackView } =
+    useRecommendations();
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -54,6 +59,18 @@ const Index = () => {
         {/* Stats */}
         <StatsBar />
 
+        {/* Recommendations */}
+        <section className="space-y-5">
+          <RecommendationRow recommendations={deals} reason="deal_trending" />
+          <RecommendationRow recommendations={bestValue} reason="best_value" />
+          {personalized.length > 0 && (
+            <RecommendationRow recommendations={personalized} reason="personalized" />
+          )}
+        </section>
+
+        {/* Smart Basket */}
+        <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
+
         {/* Search + Filter */}
         <div className="space-y-4">
           <SearchBar value={search} onChange={setSearch} />
@@ -77,7 +94,12 @@ const Index = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filtered.map((product, i) => (
-                <ProductCard key={product.id} product={product} index={i} />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  index={i}
+                  onView={() => trackView(product.id)}
+                />
               ))}
             </div>
           )}

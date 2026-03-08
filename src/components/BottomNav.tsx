@@ -16,7 +16,6 @@ const tabIcons = {
 
 const tabKeys = {
   home: "nav.home",
-  search: "nav.search",
   basket: "nav.basket",
   settings: "nav.settings",
 };

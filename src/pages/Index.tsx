@@ -42,13 +42,26 @@ const Index = () => {
     });
   }, [search, category, products, language, getProductName]);
 
-  // Find related products (same base product name) for the selected product
+  // Find related products by shared keywords in name or same category+similar terms
   const relatedProducts = useMemo(() => {
     if (!selectedProduct) return [];
-    const baseName = selectedProduct.name.toLowerCase().trim();
-    return products.filter(
-      (p) => p.id !== selectedProduct.id && p.name.toLowerCase().trim() === baseName
-    );
+
+    // Extract meaningful keywords (3+ chars) from the product name
+    const stopWords = new Set(["the", "and", "per", "with", "for", "from", "pack", "each"]);
+    const keywords = selectedProduct.name
+      .toLowerCase()
+      .split(/[\s\-\/\(\),]+/)
+      .filter((w) => w.length >= 3 && !stopWords.has(w));
+
+    if (keywords.length === 0) return [];
+
+    // Find products that share at least one keyword AND are in the same category
+    return products.filter((p) => {
+      if (p.id === selectedProduct.id) return false;
+      if (p.category !== selectedProduct.category) return false;
+      const pWords = p.name.toLowerCase().split(/[\s\-\/\(\),]+/);
+      return keywords.some((kw) => pWords.some((pw) => pw.includes(kw) || kw.includes(pw)));
+    });
   }, [selectedProduct, products]);
 
   // Group filtered products by base name (strip brand) for the search list

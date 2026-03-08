@@ -553,6 +553,9 @@ Deno.serve(async (req) => {
       // No body = scrape all stores
     }
 
+    // Load store configs from DB (with fallback to defaults)
+    const STORE_PROMO_URLS = await loadStoreConfigs(supabase);
+
     const storeIds = storeId ? [storeId] : Object.keys(STORE_PROMO_URLS);
     const results: Record<string, { promotions: number; matched: number; method: string; error?: string }> = {};
 

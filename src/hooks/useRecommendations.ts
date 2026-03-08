@@ -98,7 +98,7 @@ function getDealsAndTrending(count = 4): Recommendation[] {
       return {
         product: p,
         reason: "deal_trending" as const,
-        label: `${store.name} — $${salePrice.price.toFixed(2)}`,
+        label: `${store.name} — €${salePrice.price.toFixed(2)}`,
         score: discount,
       };
     })

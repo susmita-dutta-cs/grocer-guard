@@ -41,7 +41,7 @@ const RecommendationRow = ({ recommendations, reason }: RecommendationRowProps) 
               <p className="text-xs text-muted-foreground mt-0.5">{rec.product.unit}</p>
               <div className="mt-2 flex items-baseline gap-1">
                 <span className="text-lg font-display font-bold text-accent-foreground">
-                  ${lowest.price.toFixed(2)}
+                  €{lowest.price.toFixed(2)}
                 </span>
                 <span className="text-[10px] text-muted-foreground">at {store.name}</span>
               </div>

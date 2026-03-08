@@ -5,6 +5,7 @@ interface BottomNavProps {
   active: string;
   onNavigate: (tab: string) => void;
   basketCount?: number;
+  favoritesCount?: number;
 }
 
 const tabIcons = {

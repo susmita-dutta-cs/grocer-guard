@@ -4,6 +4,7 @@ import { TrendingDown } from "lucide-react";
 interface ProductCardProps {
   product: Product;
   index: number;
+  onView?: () => void;
 }
 
 const storeColorMap: Record<string, string> = {
@@ -13,7 +14,8 @@ const storeColorMap: Record<string, string> = {
   aldi: "bg-store-4",
 };
 
-const ProductCard = ({ product, index }: ProductCardProps) => {
+const ProductCard = ({ product, index, onView }: ProductCardProps) => {
+  // Track view on mount
   const lowest = getLowestPrice(product);
   const highest = getHighestPrice(product);
   const savings = getSavingsPercent(product);
@@ -21,7 +23,8 @@ const ProductCard = ({ product, index }: ProductCardProps) => {
 
   return (
     <div
-      className="bg-card rounded-xl border border-border p-4 shadow-sm hover:shadow-md transition-all animate-fade-in-up"
+      onClick={onView}
+      className="bg-card rounded-xl border border-border p-4 shadow-sm hover:shadow-md transition-all animate-fade-in-up cursor-pointer"
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Header */}

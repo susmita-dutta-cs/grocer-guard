@@ -481,20 +481,20 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Process pages in batches of 3 to avoid rate limits
-          const batchSize = 3;
+          // Process pages in batches of 2 to avoid rate limits (more pages now)
+          const batchSize = 2;
           for (let i = 0; i < pageUrls.length; i += batchSize) {
             const batch = pageUrls.slice(i, i + batchSize);
             const batchPromises = batch.map(async (pageUrl, idx) => {
-              const pageNum = i + idx + 2; // pages start at 2 (skip cover)
+              const pageNum = i + idx + 1;
               try {
-                console.log(`Processing Issuu page ${pageNum}...`);
+                console.log(`Processing Issuu page ${pageNum} (${pageUrl})...`);
                 const pagePromos = await extractPromosWithVision(
                   lovableApiKey,
                   `colruyt (folder page ${pageNum})`,
                   { screenshot: pageUrl }
                 );
-                console.log(`Page ${pageNum}: ${pagePromos.length} promos`);
+                console.log(`Page ${pageNum}: extracted ${pagePromos.length} promos`);
                 return pagePromos;
               } catch (e) {
                 console.error(`Error on page ${pageNum}:`, e);
@@ -507,9 +507,9 @@ Deno.serve(async (req) => {
               allPromos.push(...promos);
             }
 
-            // Rate limit between batches
+            // Rate limit between batches - slightly longer pause
             if (i + batchSize < pageUrls.length) {
-              await new Promise((r) => setTimeout(r, 1000));
+              await new Promise((r) => setTimeout(r, 1500));
             }
           }
 

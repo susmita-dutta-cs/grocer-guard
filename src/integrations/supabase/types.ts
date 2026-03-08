@@ -154,6 +154,33 @@ export type Database = {
           },
         ]
       }
+      store_scrape_configs: {
+        Row: {
+          folder_url: string
+          id: string
+          scrape_method: string
+          store_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          folder_url: string
+          id?: string
+          scrape_method?: string
+          store_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          folder_url?: string
+          id?: string
+          scrape_method?: string
+          store_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       stores: {
         Row: {
           created_at: string

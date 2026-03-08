@@ -105,16 +105,18 @@ async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): P
   const svgHash = svgHashMatch[1];
   console.log(`Found SVG hash: ${svgHash}`);
 
-  // Extract page count from "Page X of Y" text
-  const pageCountMatch = readerHtml.match(/of\s+(\d+)/);
-  const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 20;
+  // Extract page count from "Page X of Y" text or meta data
+  const pageCountMatch = readerHtml.match(/of\s+(\d+)/) || readerHtml.match(/pageCount['":\s]+(\d+)/);
+  const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 24;
   console.log(`Total pages: ${totalPages}`);
 
-  // Generate SVG page URLs (skip first page which is usually just the cover)
+  // Generate JPG page image URLs for ALL pages (including cover for completeness)
+  // Issuu serves high-quality JPG images that work much better with vision AI
   const pageUrls: string[] = [];
-  const maxPages = Math.min(totalPages, 24); // Limit to 24 pages to avoid timeout
-  for (let i = 2; i <= maxPages; i++) {
-    pageUrls.push(`https://svg.issuu.com/${svgHash}/page_${i}.svg`);
+  const maxPages = Math.min(totalPages, 30); // Process up to 30 pages
+  for (let i = 1; i <= maxPages; i++) {
+    // Use Issuu's image CDN which provides actual raster images
+    pageUrls.push(`https://image.issuu.com/${svgHash}/jpg/page_${i}.jpg`);
   }
 
   return pageUrls;
@@ -261,18 +263,30 @@ async function scrapeStore(
   };
 }
 
-const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgian supermarkets. Extract ALL food and grocery product promotions visible in the provided content or image. Be thorough - extract every single product you can see.
+const EXTRACTION_PROMPT = `You are a grocery promotion data extractor for Belgian supermarkets. You will receive an image from a promotional folder/flyer. Your job is to extract EVERY single product promotion visible on the page.
+
+CRITICAL INSTRUCTIONS:
+- Look at EVERY product on the page, even small ones in corners or partially visible
+- Read ALL text: product names, brands, prices, weights, discount labels, validity dates
+- Pay close attention to price tags, red/yellow discount stickers, "1+1", "2de -50%", etc.
+- Extract the EXACT brand name as printed (e.g. "Boni Selection", "Everyday", "Colruyt", "Danone", "Coca-Cola")
+- Extract the EXACT quantity/weight as printed (e.g. "1,5 kg", "500 g", "6 x 33 cl", "per stuk", "per kg")
+- Extract both the promotional price AND original price when visible
+- Note the discount type exactly as shown (e.g. "1+1 gratis", "2de aan -50%", "€1 korting", "-25%", "2 voor €3")
+- Look for validity dates (e.g. "geldig van 03/03 tot 09/03")
 
 Return a JSON array of objects with these fields:
-- product_name: the specific product name (in Dutch, be specific e.g. "Wortelen" not just "groenten")
-- brand: the brand name (e.g. "Boni Selection", "Colruyt", "Everyday", etc. Use null if unknown)
-- quantity: the quantity/weight (e.g. "1.5 kg", "500g", "6 stuks", "1L", etc. Use null if not visible)
-- discount_type: the type of discount (e.g. "1+1 gratis", "25% korting", "2e halve prijs", "€X korting", "3+1 gratis", etc.)
+- product_name: the specific product name in Dutch as printed (be very specific, e.g. "Verse kipfilet" not just "kip")
+- brand: the exact brand name as printed (null if not visible)
+- quantity: the exact quantity/weight as printed (null if not visible)
+- discount_type: the exact discount/promotion type as shown (e.g. "1+1 gratis", "2de -50%", "€1 korting")
 - promo_price: the promotional/discounted price as a number (null if not available)
 - original_price: the original/regular price as a number (null if not available)
 - category: product category in English (e.g. "dairy", "meat", "vegetables", "fruit", "beverages", "bakery", "snacks", "household", "frozen", "other")
+- valid_from: start date if visible in format "YYYY-MM-DD" (null if not visible)
+- valid_until: end date if visible in format "YYYY-MM-DD" (null if not visible)
 
-IMPORTANT: Look carefully at ALL products in the image. Read every price tag, every discount label, every product name. Include items partially visible at edges.
+IMPORTANT: Extract EVERY product. A typical folder page has 4-12 products. If you find fewer than 3 on a non-cover page, look again more carefully.
 Only include food/grocery items. Skip non-food items like clothing, furniture, electronics, tools.
 Return ONLY the JSON array, no other text. If you can't find any promotions, return an empty array [].`;
 
@@ -467,20 +481,20 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Process pages in batches of 3 to avoid rate limits
-          const batchSize = 3;
+          // Process pages in batches of 2 to avoid rate limits (more pages now)
+          const batchSize = 2;
           for (let i = 0; i < pageUrls.length; i += batchSize) {
             const batch = pageUrls.slice(i, i + batchSize);
             const batchPromises = batch.map(async (pageUrl, idx) => {
-              const pageNum = i + idx + 2; // pages start at 2 (skip cover)
+              const pageNum = i + idx + 1;
               try {
-                console.log(`Processing Issuu page ${pageNum}...`);
+                console.log(`Processing Issuu page ${pageNum} (${pageUrl})...`);
                 const pagePromos = await extractPromosWithVision(
                   lovableApiKey,
                   `colruyt (folder page ${pageNum})`,
                   { screenshot: pageUrl }
                 );
-                console.log(`Page ${pageNum}: ${pagePromos.length} promos`);
+                console.log(`Page ${pageNum}: extracted ${pagePromos.length} promos`);
                 return pagePromos;
               } catch (e) {
                 console.error(`Error on page ${pageNum}:`, e);
@@ -493,9 +507,9 @@ Deno.serve(async (req) => {
               allPromos.push(...promos);
             }
 
-            // Rate limit between batches
+            // Rate limit between batches - slightly longer pause
             if (i + batchSize < pageUrls.length) {
-              await new Promise((r) => setTimeout(r, 1000));
+              await new Promise((r) => setTimeout(r, 1500));
             }
           }
 
@@ -548,8 +562,8 @@ Deno.serve(async (req) => {
           discount_type: p.discount_type || null,
           promo_price: p.promo_price || null,
           original_price: p.original_price || null,
-          valid_from: validFrom.toISOString().split("T")[0],
-          valid_until: validUntil.toISOString().split("T")[0],
+          valid_from: p.valid_from || validFrom.toISOString().split("T")[0],
+          valid_until: p.valid_until || validUntil.toISOString().split("T")[0],
           category: p.category || null,
           matched_product_id: p.matched_product_id || null,
           source_url: config.url,

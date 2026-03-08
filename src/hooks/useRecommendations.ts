@@ -16,12 +16,22 @@ export type Recommendation = {
   score: number;
 };
 
+export type SmartBasketItem = {
+  productId: string;
+  productName: string;
+  brand?: string;
+  image: string;
+  price: number;
+  available: boolean;
+};
+
 export type SmartBasketResult = {
   storeId: string;
   storeName: string;
   totalCost: number;
   itemCount: number;
   savings: number;
+  items: SmartBasketItem[];
 };
 
 // --- Browsing history (localStorage) ---

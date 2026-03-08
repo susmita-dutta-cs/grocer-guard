@@ -34,6 +34,18 @@ interface ScrapeProgress {
   errors: string[];
 }
 
+interface FolderScrapeResult {
+  promotions: number;
+  matched: number;
+  error?: string;
+}
+
+interface FolderProgress {
+  status: ScrapeStatus;
+  storeId: string | null;
+  results: Record<string, FolderScrapeResult>;
+}
+
 const AdminPanel = () => {
   const { user, isAdmin, loading } = useAuth();
   const { t } = useI18n();

@@ -2,6 +2,7 @@ import type { Recommendation } from "@/hooks/useRecommendations";
 import { stores, getLowestPrice } from "@/data/groceryData";
 import { Sparkles, TrendingDown, Tag, Heart } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
+import { useProductName } from "@/hooks/useProductName";
 
 const reasonConfig: Record<string, { icon: typeof Sparkles; titleKey: string; accent: string }> = {
   best_value: { icon: TrendingDown, titleKey: "rec.bestValue", accent: "text-accent-foreground" },
@@ -16,6 +17,7 @@ interface RecommendationRowProps {
 
 const RecommendationRow = ({ recommendations, reason }: RecommendationRowProps) => {
   const { t } = useI18n();
+  const { getProductName } = useProductName();
   if (recommendations.length === 0) return null;
   const config = reasonConfig[reason];
   if (!config) return null;
@@ -38,8 +40,11 @@ const RecommendationRow = ({ recommendations, reason }: RecommendationRowProps) 
             >
               <div className="text-3xl mb-2">{rec.product.image}</div>
               <p className="font-medium text-sm text-card-foreground leading-tight truncate">
-                {rec.product.name}
+                {getProductName(rec.product)}
               </p>
+              {rec.product.brand && (
+                <p className="text-[10px] text-primary/70 font-medium">{rec.product.brand}</p>
+              )}
               <p className="text-xs text-muted-foreground mt-0.5">{rec.product.unit}</p>
               <div className="mt-2 flex items-baseline gap-1">
                 <span className="text-lg font-display font-bold text-accent-foreground">

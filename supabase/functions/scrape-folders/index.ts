@@ -32,6 +32,94 @@ interface ScrapeResult {
   screenshot?: string; // base64 image or URL
 }
 
+// Extract Issuu document hash from Colruyt's folder page HTML
+async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): Promise<string[]> {
+  // Step 1: Scrape the folders overview page to get Issuu embed URLs
+  const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: folderPageUrl,
+      formats: ["rawHtml"],
+      waitFor: 5000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Firecrawl error: ${JSON.stringify(data)}`);
+
+  const html = data.data?.rawHtml || data.rawHtml || "";
+
+  // Extract Issuu embed URL - look for data-id attribute containing issuu.com
+  const issuuMatches = html.match(/data-id="(https:\/\/e\.issuu\.com\/embed\.html\?d=[^"&]+&amp;u=[^"]+)"/g) || [];
+  
+  if (issuuMatches.length === 0) {
+    console.log("No Issuu embed URLs found in Colruyt folder page");
+    return [];
+  }
+
+  // Get the first folder (main folder)
+  const firstMatch = issuuMatches[0];
+  const dMatch = firstMatch.match(/d=([^"&]+)/);
+  const uMatch = firstMatch.match(/u=([^"&]+)/);
+  
+  if (!dMatch || !uMatch) {
+    console.log("Could not parse Issuu document ID from embed URL");
+    return [];
+  }
+
+  const docSlug = dMatch[1];
+  const username = uMatch[1];
+  console.log(`Found Issuu document: ${username}/${docSlug}`);
+
+  // Step 2: Fetch the Issuu reader page to get the SVG hash and page count
+  const issuuUrl = `https://issuu.com/${username}/docs/${docSlug}`;
+  const readerRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: issuuUrl,
+      formats: ["rawHtml"],
+      waitFor: 3000,
+    }),
+  });
+
+  const readerData = await readerRes.json();
+  if (!readerRes.ok) throw new Error(`Firecrawl Issuu reader error: ${JSON.stringify(readerData)}`);
+
+  const readerHtml = readerData.data?.rawHtml || readerData.rawHtml || "";
+
+  // Extract the SVG base URL hash from preload links
+  const svgHashMatch = readerHtml.match(/https:\/\/svg\.issuu\.com\/([^/]+)\//);
+  if (!svgHashMatch) {
+    console.log("Could not find SVG hash in Issuu reader page");
+    return [];
+  }
+
+  const svgHash = svgHashMatch[1];
+  console.log(`Found SVG hash: ${svgHash}`);
+
+  // Extract page count from "Page X of Y" text
+  const pageCountMatch = readerHtml.match(/of\s+(\d+)/);
+  const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 20;
+  console.log(`Total pages: ${totalPages}`);
+
+  // Generate SVG page URLs (skip first page which is usually just the cover)
+  const pageUrls: string[] = [];
+  const maxPages = Math.min(totalPages, 24); // Limit to 24 pages to avoid timeout
+  for (let i = 2; i <= maxPages; i++) {
+    pageUrls.push(`https://svg.issuu.com/${svgHash}/page_${i}.svg`);
+  }
+
+  return pageUrls;
+}
+
 async function scrapeStore(
   firecrawlKey: string,
   storeId: string

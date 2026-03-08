@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface StoreConfig {
   url: string;
-  method: "scrape" | "search" | "screenshot" | "crawl";
+  method: "scrape" | "search" | "screenshot" | "crawl" | "issuu";
   waitFor?: number;
   crawlLimit?: number;
   includePaths?: string[];
@@ -19,9 +19,9 @@ const STORE_PROMO_URLS: Record<string, StoreConfig> = {
   albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape", waitFor: 3000 },
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
   colruyt: {
-    url: "https://www.colruyt.be/nl/acties",
-    method: "screenshot",
-    waitFor: 8000,
+    url: "https://www.colruyt.be/nl/folders",
+    method: "issuu" as any,
+    waitFor: 5000,
   },
   jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape", waitFor: 3000 },
   lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "screenshot", waitFor: 5000 },
@@ -30,6 +30,94 @@ const STORE_PROMO_URLS: Record<string, StoreConfig> = {
 interface ScrapeResult {
   markdown?: string;
   screenshot?: string; // base64 image or URL
+}
+
+// Extract Issuu document hash from Colruyt's folder page HTML
+async function extractIssuuPages(firecrawlKey: string, folderPageUrl: string): Promise<string[]> {
+  // Step 1: Scrape the folders overview page to get Issuu embed URLs
+  const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: folderPageUrl,
+      formats: ["rawHtml"],
+      waitFor: 5000,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Firecrawl error: ${JSON.stringify(data)}`);
+
+  const html = data.data?.rawHtml || data.rawHtml || "";
+
+  // Extract Issuu embed URL - look for data-id attribute containing issuu.com
+  const issuuMatches = html.match(/data-id="(https:\/\/e\.issuu\.com\/embed\.html\?d=[^"&]+&amp;u=[^"]+)"/g) || [];
+  
+  if (issuuMatches.length === 0) {
+    console.log("No Issuu embed URLs found in Colruyt folder page");
+    return [];
+  }
+
+  // Get the first folder (main folder)
+  const firstMatch = issuuMatches[0];
+  const dMatch = firstMatch.match(/d=([^"&]+)/);
+  const uMatch = firstMatch.match(/u=([^"&]+)/);
+  
+  if (!dMatch || !uMatch) {
+    console.log("Could not parse Issuu document ID from embed URL");
+    return [];
+  }
+
+  const docSlug = dMatch[1];
+  const username = uMatch[1];
+  console.log(`Found Issuu document: ${username}/${docSlug}`);
+
+  // Step 2: Fetch the Issuu reader page to get the SVG hash and page count
+  const issuuUrl = `https://issuu.com/${username}/docs/${docSlug}`;
+  const readerRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${firecrawlKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: issuuUrl,
+      formats: ["rawHtml"],
+      waitFor: 3000,
+    }),
+  });
+
+  const readerData = await readerRes.json();
+  if (!readerRes.ok) throw new Error(`Firecrawl Issuu reader error: ${JSON.stringify(readerData)}`);
+
+  const readerHtml = readerData.data?.rawHtml || readerData.rawHtml || "";
+
+  // Extract the SVG base URL hash from preload links
+  const svgHashMatch = readerHtml.match(/https:\/\/svg\.issuu\.com\/([^/]+)\//);
+  if (!svgHashMatch) {
+    console.log("Could not find SVG hash in Issuu reader page");
+    return [];
+  }
+
+  const svgHash = svgHashMatch[1];
+  console.log(`Found SVG hash: ${svgHash}`);
+
+  // Extract page count from "Page X of Y" text
+  const pageCountMatch = readerHtml.match(/of\s+(\d+)/);
+  const totalPages = pageCountMatch ? parseInt(pageCountMatch[1]) : 20;
+  console.log(`Total pages: ${totalPages}`);
+
+  // Generate SVG page URLs (skip first page which is usually just the cover)
+  const pageUrls: string[] = [];
+  const maxPages = Math.min(totalPages, 24); // Limit to 24 pages to avoid timeout
+  for (let i = 2; i <= maxPages; i++) {
+    pageUrls.push(`https://svg.issuu.com/${svgHash}/page_${i}.svg`);
+  }
+
+  return pageUrls;
 }
 
 async function scrapeStore(
@@ -367,32 +455,78 @@ Deno.serve(async (req) => {
         const config = STORE_PROMO_URLS[sid];
         console.log(`Scraping folder for ${sid} using ${config.method}...`);
 
-        // Step 1: Scrape the promo page (with screenshot if configured)
-        const scrapeResult = await scrapeStore(firecrawlKey, sid);
+        let allPromos: any[] = [];
 
-        const hasContent = (scrapeResult.markdown && scrapeResult.markdown.length > 100) || scrapeResult.screenshot;
-        if (!hasContent) {
-          results[sid] = { promotions: 0, matched: 0, method: config.method, error: "No content found" };
-          continue;
+        if (config.method === "issuu") {
+          // Issuu flipbook: extract page image URLs and process each with vision
+          const pageUrls = await extractIssuuPages(firecrawlKey, config.url);
+          console.log(`Found ${pageUrls.length} Issuu pages for ${sid}`);
+
+          if (pageUrls.length === 0) {
+            results[sid] = { promotions: 0, matched: 0, method: config.method, error: "No Issuu pages found" };
+            continue;
+          }
+
+          // Process pages in batches of 3 to avoid rate limits
+          const batchSize = 3;
+          for (let i = 0; i < pageUrls.length; i += batchSize) {
+            const batch = pageUrls.slice(i, i + batchSize);
+            const batchPromises = batch.map(async (pageUrl, idx) => {
+              const pageNum = i + idx + 2; // pages start at 2 (skip cover)
+              try {
+                console.log(`Processing Issuu page ${pageNum}...`);
+                const pagePromos = await extractPromosWithVision(
+                  lovableApiKey,
+                  `colruyt (folder page ${pageNum})`,
+                  { screenshot: pageUrl }
+                );
+                console.log(`Page ${pageNum}: ${pagePromos.length} promos`);
+                return pagePromos;
+              } catch (e) {
+                console.error(`Error on page ${pageNum}:`, e);
+                return [];
+              }
+            });
+
+            const batchResults = await Promise.all(batchPromises);
+            for (const promos of batchResults) {
+              allPromos.push(...promos);
+            }
+
+            // Rate limit between batches
+            if (i + batchSize < pageUrls.length) {
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          }
+
+          console.log(`Total promos extracted from Issuu: ${allPromos.length}`);
+        } else {
+          // Standard scrape/screenshot flow
+          const scrapeResult = await scrapeStore(firecrawlKey, sid);
+
+          const hasContent = (scrapeResult.markdown && scrapeResult.markdown.length > 100) || scrapeResult.screenshot;
+          if (!hasContent) {
+            results[sid] = { promotions: 0, matched: 0, method: config.method, error: "No content found" };
+            continue;
+          }
+
+          console.log(
+            `${sid}: got ${scrapeResult.markdown?.length || 0} chars markdown` +
+            `${scrapeResult.screenshot ? `, screenshot (${Math.round(scrapeResult.screenshot.length / 1024)}KB)` : ""}`
+          );
+
+          const storeName = sid.replace("_", " ");
+          allPromos = await extractPromosWithVision(lovableApiKey, storeName, scrapeResult);
+          console.log(`AI extracted ${allPromos.length} promos for ${sid}`);
         }
 
-        console.log(
-          `${sid}: got ${scrapeResult.markdown?.length || 0} chars markdown` +
-          `${scrapeResult.screenshot ? `, screenshot (${Math.round(scrapeResult.screenshot.length / 1024)}KB)` : ""}`
-        );
-
-        // Step 2: Extract promotions with AI (vision-capable for screenshots)
-        const storeName = sid.replace("_", " ");
-        const promos = await extractPromosWithVision(lovableApiKey, storeName, scrapeResult);
-        console.log(`AI extracted ${promos.length} promos for ${sid}`);
-
-        if (promos.length === 0) {
+        if (allPromos.length === 0) {
           results[sid] = { promotions: 0, matched: 0, method: config.method };
           continue;
         }
 
         // Step 3: Match to existing products
-        const matchedPromos = await matchProducts(supabase, promos);
+        const matchedPromos = await matchProducts(supabase, allPromos);
 
         // Step 4: Clear old promotions for this store and insert new ones
         await supabase
@@ -427,7 +561,7 @@ Deno.serve(async (req) => {
 
         if (insertErr) {
           console.error(`Insert error for ${sid}:`, insertErr);
-          results[sid] = { promotions: promos.length, matched: 0, method: config.method, error: insertErr.message };
+          results[sid] = { promotions: allPromos.length, matched: 0, method: config.method, error: insertErr.message };
           continue;
         }
 
@@ -452,8 +586,8 @@ Deno.serve(async (req) => {
         }
 
         const matchedCount = matchedPromos.filter((p: any) => p.matched_product_id).length;
-        results[sid] = { promotions: promos.length, matched: matchedCount, method: config.method };
-        console.log(`${sid}: ${promos.length} promos, ${matchedCount} matched (${config.method})`);
+        results[sid] = { promotions: allPromos.length, matched: matchedCount, method: config.method };
+        console.log(`${sid}: ${allPromos.length} promos, ${matchedCount} matched (${config.method})`);
 
         // Rate limit between stores
         await new Promise((r) => setTimeout(r, 1500));

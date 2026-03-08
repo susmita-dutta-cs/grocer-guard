@@ -52,6 +52,11 @@ const BottomNav = ({ active, onNavigate, basketCount = 0, favoritesCount = 0 }: 
                     {basketCount}
                   </span>
                 )}
+                {id === "favorites" && favoritesCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-primary text-primary-foreground text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
+                    {favoritesCount}
+                  </span>
+                )}
               </div>
               <span className={`text-[10px] font-medium ${isActive ? "text-primary" : ""}`}>
                 {t(tabKeys[id])}

@@ -121,7 +121,7 @@ const PromotionsSection = () => {
 
       <div className="grid grid-cols-2 gap-2">
         {displayed.map((promo) => {
-          const store = stores.find((s) => s.id === promo.store_id);
+          const store = findStore(promo.store_id);
           const emoji = categoryEmoji[promo.category || "other"] || "🛒";
 
           return (

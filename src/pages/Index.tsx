@@ -70,18 +70,16 @@ const Index = () => {
       .split(/[\s\-\/\(\),]+/)
       .filter((w) => w.length >= 3 && !stopWords.has(w));
 
-    // Use the longest keyword as the primary one (most specific)
-    const primaryKeyword = keywords.length > 0
-      ? keywords.reduce((a, b) => (a.length >= b.length ? a : b))
-      : null;
-
     const matchedIds = new Set<string>();
 
-    // 1. Match by primary keyword in name (non-home-brand products)
-    if (primaryKeyword) {
+    // 1. Match by ALL keywords in name (non-home-brand products) — ensures "lentils red" doesn't match "lentils green"
+    if (keywords.length > 0) {
       products.forEach((p) => {
-        if (p.id !== selectedProduct.id && p.name.toLowerCase().includes(primaryKeyword)) {
-          matchedIds.add(p.id);
+        if (p.id !== selectedProduct.id) {
+          const pName = p.name.toLowerCase();
+          if (keywords.every((kw) => pName.includes(kw))) {
+            matchedIds.add(p.id);
+          }
         }
       });
     }

@@ -105,7 +105,7 @@ const PromotionsSection = () => {
               : "bg-card text-muted-foreground border-border hover:border-primary/30"
           }`}
         >
-          All
+          {t("deals.all")}
         </button>
         {categories.map((cat) => (
           <button

@@ -181,7 +181,8 @@ const PromotionsSection = () => {
                 <span className="text-[9px] text-muted-foreground">{store?.name}</span>
                 {promo.valid_until && (
                   <span className="text-[9px] text-muted-foreground">
-                    tot {new Date(promo.valid_until).toLocaleDateString("nl-BE", { day: "2-digit", month: "2-digit" })}
+                    {t("deals.validUntil")} {new Date(promo.valid_until).toLocaleDateString(language === "fr" ? "fr-BE" : language === "nl" ? "nl-BE" : "en-GB", { day: "2-digit", month: "2-digit" })}
+                  </span>
                   </span>
                 )}
               </div>

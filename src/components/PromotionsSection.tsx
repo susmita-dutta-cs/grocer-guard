@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Newspaper, ChevronRight, Heart } from "lucide-react";
 import { usePromotions } from "@/hooks/usePromotions";
 import { usePromotionFavorites } from "@/hooks/usePromotionFavorites";
+import { useI18n } from "@/hooks/useI18n";
 import { stores } from "@/data/groceryData";
 
 // Normalize store_id from scraped data (hyphens) to app format (underscores)
@@ -32,6 +33,7 @@ const categoryEmoji: Record<string, string> = {
 const PromotionsSection = () => {
   const { promotions, isLoading } = usePromotions();
   const { isFavorite, toggleFavorite } = usePromotionFavorites();
+  const { t, language } = useI18n();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -57,9 +59,9 @@ const PromotionsSection = () => {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Newspaper className="h-5 w-5 text-secondary" />
-        <h3 className="font-display font-semibold text-foreground">Weekly Deals</h3>
+        <h3 className="font-display font-semibold text-foreground">{t("deals.title")}</h3>
         <span className="text-[10px] text-muted-foreground ml-auto">
-          {promotions.length} promotions
+          {promotions.length} {t("deals.promotions")}
         </span>
       </div>
 
@@ -73,7 +75,7 @@ const PromotionsSection = () => {
               : "bg-card text-muted-foreground border-border hover:border-secondary/30"
           }`}
         >
-          All stores
+          {t("deals.allStores")}
         </button>
         {storeIds.map((sid) => {
           const store = findStore(sid);
@@ -103,7 +105,7 @@ const PromotionsSection = () => {
               : "bg-card text-muted-foreground border-border hover:border-primary/30"
           }`}
         >
-          All
+          {t("deals.all")}
         </button>
         {categories.map((cat) => (
           <button
@@ -179,7 +181,7 @@ const PromotionsSection = () => {
                 <span className="text-[9px] text-muted-foreground">{store?.name}</span>
                 {promo.valid_until && (
                   <span className="text-[9px] text-muted-foreground">
-                    tot {new Date(promo.valid_until).toLocaleDateString("nl-BE", { day: "2-digit", month: "2-digit" })}
+                    {t("deals.validUntil")} {new Date(promo.valid_until).toLocaleDateString(language === "fr" ? "fr-BE" : language === "nl" ? "nl-BE" : "en-GB", { day: "2-digit", month: "2-digit" })}
                   </span>
                 )}
               </div>
@@ -193,7 +195,7 @@ const PromotionsSection = () => {
           onClick={() => setExpanded(!expanded)}
           className="w-full flex items-center justify-center gap-1 text-xs text-primary font-medium py-2 hover:bg-primary/5 rounded-lg transition-colors"
         >
-          {expanded ? "Show less" : `Show all ${filtered.length} deals`}
+          {expanded ? t("deals.showLess") : `${t("deals.showAll")} ${filtered.length} ${t("deals.dealsSuffix")}`}
           <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} />
         </button>
       )}

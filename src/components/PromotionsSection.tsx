@@ -75,7 +75,7 @@ const PromotionsSection = () => {
               : "bg-card text-muted-foreground border-border hover:border-secondary/30"
           }`}
         >
-          All stores
+          {t("deals.allStores")}
         </button>
         {storeIds.map((sid) => {
           const store = findStore(sid);

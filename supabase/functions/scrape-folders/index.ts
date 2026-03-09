@@ -16,7 +16,7 @@ interface StoreConfig {
 
 const DEFAULT_STORE_PROMO_URLS: Record<string, StoreConfig> = {
   aldi: { url: "https://www.aldi.be/nl/onze-aanbiedingen.html", method: "scrape", waitFor: 3000 },
-  albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape", waitFor: 3000 },
+  albert_heijn: { url: "https://www.ah.be/bonus", method: "crawl", waitFor: 5000, crawlLimit: 8, includePaths: ["/bonus"] },
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
   colruyt: {
     url: "https://www.colruyt.be/nl/folders",
@@ -205,7 +205,7 @@ async function scrapeStore(
     const mainScreenshot = mainData.data?.screenshot || mainData.screenshot || undefined;
     console.log(`Main page: ${mainMarkdown.length} chars${mainScreenshot ? ", has screenshot" : ""}`);
 
-    // Step 2: Use map to find additional promo pages and scrape top one (text-only for speed)
+    // Step 2: Use map to find additional promo/bonus sub-pages
     let extraMarkdown = "";
     try {
       const mapRes = await fetch("https://api.firecrawl.dev/v1/map", {
@@ -216,18 +216,24 @@ async function scrapeStore(
         },
         body: JSON.stringify({
           url: config.url,
-          search: "promoties korting aanbieding",
-          limit: 10,
+          search: "bonus promotie korting aanbieding",
+          limit: 30,
           includeSubdomains: false,
         }),
       });
       const mapData = await mapRes.json();
       const allLinks: string[] = mapData.links || [];
+      
+      // Filter for relevant sub-pages based on config or heuristics
+      const includePatterns = config.includePaths || ["/acties", "/bonus", "/promoties"];
       const subPages = allLinks
-        .filter((l: string) => l !== config.url && l.includes("/acties"))
-        .slice(0, 2);
+        .filter((l: string) => {
+          if (l === config.url) return false;
+          return includePatterns.some(p => l.includes(p));
+        })
+        .slice(0, config.crawlLimit || 5);
 
-      console.log(`Found ${subPages.length} sub-pages to scrape`);
+      console.log(`Found ${subPages.length} sub-pages to scrape for ${storeId}`);
 
       for (const subUrl of subPages) {
         try {
@@ -253,6 +259,8 @@ async function scrapeStore(
         } catch (e) {
           console.error(`Failed sub-page ${subUrl}:`, e);
         }
+        // Rate limit between sub-page scrapes
+        await new Promise((r) => setTimeout(r, 500));
       }
     } catch (e) {
       console.error("Map failed, using main page only:", e);

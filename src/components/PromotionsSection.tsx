@@ -196,7 +196,7 @@ const PromotionsSection = () => {
           onClick={() => setExpanded(!expanded)}
           className="w-full flex items-center justify-center gap-1 text-xs text-primary font-medium py-2 hover:bg-primary/5 rounded-lg transition-colors"
         >
-          {expanded ? "Show less" : `Show all ${filtered.length} deals`}
+          {expanded ? t("deals.showLess") : `${t("deals.showAll")} ${filtered.length} ${t("deals.dealsSuffix")}`}
           <ChevronRight className={`h-3.5 w-3.5 transition-transform ${expanded ? "rotate-90" : ""}`} />
         </button>
       )}

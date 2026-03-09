@@ -59,9 +59,9 @@ const PromotionsSection = () => {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Newspaper className="h-5 w-5 text-secondary" />
-        <h3 className="font-display font-semibold text-foreground">Weekly Deals</h3>
+        <h3 className="font-display font-semibold text-foreground">{t("deals.title")}</h3>
         <span className="text-[10px] text-muted-foreground ml-auto">
-          {promotions.length} promotions
+          {promotions.length} {t("deals.promotions")}
         </span>
       </div>
 

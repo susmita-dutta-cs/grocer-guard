@@ -16,7 +16,7 @@ interface StoreConfig {
 
 const DEFAULT_STORE_PROMO_URLS: Record<string, StoreConfig> = {
   aldi: { url: "https://www.aldi.be/nl/onze-aanbiedingen.html", method: "scrape", waitFor: 3000 },
-  albert_heijn: { url: "https://www.ah.be/bonus", method: "scrape", waitFor: 3000 },
+  albert_heijn: { url: "https://www.ah.be/bonus", method: "crawl", waitFor: 5000, crawlLimit: 8, includePaths: ["/bonus"] },
   carrefour: { url: "https://www.carrefour.be/nl/promoties", method: "scrape", waitFor: 5000 },
   colruyt: {
     url: "https://www.colruyt.be/nl/folders",

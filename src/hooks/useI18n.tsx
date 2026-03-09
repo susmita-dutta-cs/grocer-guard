@@ -160,6 +160,16 @@ const translations: Translations = {
   },
   "products.items": { en: "items", nl: "artikelen", fr: "articles" },
 
+  // Promotions / Weekly Deals
+  "deals.title": { en: "Weekly Deals", nl: "Weekaanbiedingen", fr: "Offres de la Semaine" },
+  "deals.promotions": { en: "promotions", nl: "promoties", fr: "promotions" },
+  "deals.allStores": { en: "All stores", nl: "Alle winkels", fr: "Tous les magasins" },
+  "deals.all": { en: "All", nl: "Alles", fr: "Tout" },
+  "deals.showAll": { en: "Show all", nl: "Toon alle", fr: "Afficher les" },
+  "deals.dealsSuffix": { en: "deals", nl: "deals", fr: "offres" },
+  "deals.showLess": { en: "Show less", nl: "Toon minder", fr: "Afficher moins" },
+  "deals.validUntil": { en: "until", nl: "tot", fr: "jusqu'au" },
+
   // Product names
   "product.Organic Bananas": { en: "Organic Bananas", nl: "Biologische Bananen", fr: "Bananes Bio" },
   "product.Whole Milk (1L)": { en: "Whole Milk (1L)", nl: "Volle Melk (1L)", fr: "Lait Entier (1L)" },

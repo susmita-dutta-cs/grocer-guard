@@ -33,6 +33,7 @@ const categoryEmoji: Record<string, string> = {
 const PromotionsSection = () => {
   const { promotions, isLoading } = usePromotions();
   const { isFavorite, toggleFavorite } = usePromotionFavorites();
+  const { t, language } = useI18n();
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);

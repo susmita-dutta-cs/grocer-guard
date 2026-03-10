@@ -29,6 +29,7 @@ export const stores: Store[] = [
   { id: "colruyt", name: "Colruyt", colorClass: "bg-store-4" },
   { id: "jumbo", name: "Jumbo", colorClass: "bg-store-5" },
   { id: "lidl", name: "Lidl", colorClass: "bg-store-6" },
+  { id: "delhaize", name: "Delhaize", colorClass: "bg-store-7" },
 ];
 
 export const categories = [

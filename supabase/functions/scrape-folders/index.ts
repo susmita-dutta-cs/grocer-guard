@@ -25,6 +25,7 @@ const DEFAULT_STORE_PROMO_URLS: Record<string, StoreConfig> = {
   },
   jumbo: { url: "https://www.jumbo.com/aanbiedingen", method: "scrape", waitFor: 3000 },
   lidl: { url: "https://www.lidl.be/c/nl-BE/folders-magazines/s10008101", method: "screenshot", waitFor: 5000 },
+  delhaize: { url: "https://www.kimbino.be/delhaize/", method: "crawl", waitFor: 5000, crawlLimit: 5, includePaths: ["/delhaize/delhaize-folder"] },
 };
 
 // Load store configs from DB, falling back to hardcoded defaults

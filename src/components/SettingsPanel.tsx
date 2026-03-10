@@ -271,7 +271,7 @@ const SettingsPanel = () => {
           {t("settings.stores")}
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {["Aldi", "Albert Heijn", "Carrefour", "Colruyt", "Jumbo", "Lidl"].map((store) => (
+          {["Aldi", "Albert Heijn", "Carrefour", "Colruyt", "Delhaize", "Jumbo", "Lidl"].map((store) => (
             <div key={store} className="flex items-center gap-2 bg-muted rounded-xl px-3 py-2.5">
               <div className="h-2 w-2 rounded-full bg-primary" />
               <span className="text-xs font-medium text-foreground">{store}</span>

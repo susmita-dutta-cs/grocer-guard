@@ -14,6 +14,7 @@ const storeNames: Record<string, string> = {
   albert_heijn: "Albert Heijn",
   carrefour: "Carrefour",
   colruyt: "Colruyt",
+  delhaize: "Delhaize",
   jumbo: "Jumbo",
   lidl: "Lidl",
 };

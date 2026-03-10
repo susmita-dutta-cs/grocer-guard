@@ -107,8 +107,10 @@ const Index = () => {
     setSelectedProduct(product);
   };
 
+  const nav = useNavigate();
   // Reset selection when switching tabs
   const handleNavigate = (tab: string) => {
+    if (tab === "favorites") { nav("/favorites"); return; }
     setActiveTab(tab);
     setSelectedProduct(null);
   };

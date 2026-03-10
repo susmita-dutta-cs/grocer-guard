@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShoppingBasket, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-groceries.png";
 import SearchBar from "@/components/SearchBar";
@@ -106,8 +107,10 @@ const Index = () => {
     setSelectedProduct(product);
   };
 
+  const nav = useNavigate();
   // Reset selection when switching tabs
   const handleNavigate = (tab: string) => {
+    if (tab === "favorites") { nav("/favorites"); return; }
     setActiveTab(tab);
     setSelectedProduct(null);
   };

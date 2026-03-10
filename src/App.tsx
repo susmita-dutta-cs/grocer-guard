@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import AdminPanel from "./pages/AdminPanel";
+import FavoritesPage from "./pages/FavoritesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="*" element={<NotFound />} />

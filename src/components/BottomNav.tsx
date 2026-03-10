@@ -26,7 +26,7 @@ const BottomNav = ({ active, onNavigate, basketCount = 0, favoritesCount = 0 }: 
   const { t } = useI18n();
   const tabs = ["home", "favorites", "basket", "settings"] as const;
 
-  const totalBasketCount = basketCount + favoritesCount;
+  
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border">

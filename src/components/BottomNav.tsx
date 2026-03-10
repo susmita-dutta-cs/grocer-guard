@@ -1,4 +1,4 @@
-import { Home, ShoppingCart, Settings } from "lucide-react";
+import { Home, Heart, ShoppingCart, Settings } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 
 interface BottomNavProps {
@@ -10,12 +10,14 @@ interface BottomNavProps {
 
 const tabIcons = {
   home: Home,
+  favorites: Heart,
   basket: ShoppingCart,
   settings: Settings,
 };
 
 const tabKeys = {
   home: "nav.home",
+  favorites: "Favorites",
   basket: "nav.basket",
   settings: "nav.settings",
 };

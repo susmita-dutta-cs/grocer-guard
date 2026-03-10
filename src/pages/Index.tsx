@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShoppingBasket, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-groceries.png";
 import SearchBar from "@/components/SearchBar";

@@ -47,9 +47,14 @@ const BottomNav = ({ active, onNavigate, basketCount = 0, favoritesCount = 0 }: 
               )}
               <div className="relative">
                 <Icon className={`h-5 w-5 transition-transform ${isActive ? "scale-110" : ""}`} />
-                {id === "basket" && totalBasketCount > 0 && (
+                {id === "favorites" && favoritesCount > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-primary text-primary-foreground text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
-                    {totalBasketCount}
+                    {favoritesCount}
+                  </span>
+                )}
+                {id === "basket" && basketCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-primary text-primary-foreground text-[9px] font-bold min-w-[16px] h-4 rounded-full flex items-center justify-center px-1">
+                    {basketCount}
                   </span>
                 )}
               </div>

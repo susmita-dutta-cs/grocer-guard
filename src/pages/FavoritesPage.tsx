@@ -1,13 +1,11 @@
-import { Heart, TrendingDown, Trash2, Store, ChevronRight } from "lucide-react";
+import { Heart, Store, ChevronDown, ChevronRight, Trash2, TrendingDown } from "lucide-react";
 import { useState } from "react";
-import { stores, getLowestPrice, type Product } from "@/data/groceryData";
+import { stores, getLowestPrice, categories, type Product } from "@/data/groceryData";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useAuth } from "@/hooks/useAuth";
 import { useProductName } from "@/hooks/useProductName";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useI18n } from "@/hooks/useI18n";
 import BottomNav from "@/components/BottomNav";
-import { ShoppingBasket, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const FavoritesPage = () => {
@@ -15,37 +13,43 @@ const FavoritesPage = () => {
   const { products } = useGroceryData();
   const { getProductName } = useProductName();
   const { favoriteIds, toggleFavorite, count: favCount } = useFavorites();
-  const { t } = useI18n();
   const navigate = useNavigate();
-  const [expandedStore, setExpandedStore] = useState<string | null>(null);
+  const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const favoriteProducts = products.filter((p) => favoriteIds.has(p.id));
 
-  // Group favorites by cheapest store
-  const groupedByStore = stores.reduce<Record<string, Product[]>>((acc, store) => {
-    const storeProducts = favoriteProducts.filter((p) => {
-      const lowest = getLowestPrice(p);
-      return lowest.storeId === store.id;
+  const toggleStore = (storeId: string) => {
+    setExpandedStores((prev) => {
+      const next = new Set(prev);
+      if (next.has(storeId)) next.delete(storeId);
+      else next.add(storeId);
+      return next;
     });
-    if (storeProducts.length > 0) {
-      acc[store.id] = storeProducts;
-    }
-    return acc;
-  }, {});
+  };
 
-  // Also group by ALL stores that carry the product
-  const groupedByAllStores = stores.reduce<Record<string, Product[]>>((acc, store) => {
-    const storeProducts = favoriteProducts.filter((p) =>
-      p.prices.some((pr) => pr.storeId === store.id)
-    );
-    if (storeProducts.length > 0) {
-      acc[store.id] = storeProducts;
-    }
-    return acc;
-  }, {});
+  const toggleCategory = (key: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
-  const [groupMode, setGroupMode] = useState<"cheapest" | "available">("cheapest");
-  const grouped = groupMode === "cheapest" ? groupedByStore : groupedByAllStores;
+  // For each store, get favorites that have a price at that store
+  const getStoreProducts = (storeId: string) =>
+    favoriteProducts.filter((p) => p.prices.some((pr) => pr.storeId === storeId));
+
+  // Group products by category
+  const groupByCategory = (prods: Product[]) => {
+    const grouped: Record<string, Product[]> = {};
+    for (const p of prods) {
+      if (!grouped[p.category]) grouped[p.category] = [];
+      grouped[p.category].push(p);
+    }
+    return grouped;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -61,7 +65,7 @@ const FavoritesPage = () => {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <main className="max-w-lg mx-auto px-4 py-4 space-y-3">
         {!user ? (
           <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-3">
             <Heart className="h-10 w-10 text-muted-foreground mx-auto" />
@@ -77,93 +81,122 @@ const FavoritesPage = () => {
             </p>
           </div>
         ) : (
-          <>
-            {/* Group mode toggle */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setGroupMode("cheapest")}
-                className={`flex-1 text-xs font-medium py-2 px-3 rounded-xl border transition-colors ${
-                  groupMode === "cheapest"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border hover:border-primary/30"
-                }`}
-              >
-                By cheapest store
-              </button>
-              <button
-                onClick={() => setGroupMode("available")}
-                className={`flex-1 text-xs font-medium py-2 px-3 rounded-xl border transition-colors ${
-                  groupMode === "available"
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card text-muted-foreground border-border hover:border-primary/30"
-                }`}
-              >
-                By availability
-              </button>
-            </div>
+          stores.map((store) => {
+            const storeProducts = getStoreProducts(store.id);
+            const isStoreExpanded = expandedStores.has(store.id);
+            const categoryGroups = groupByCategory(storeProducts);
+            const categoryCount = Object.keys(categoryGroups).length;
 
-            {/* Store groups */}
-            {stores.map((store) => {
-              const storeProducts = grouped[store.id];
-              if (!storeProducts || storeProducts.length === 0) return null;
-              const isExpanded = expandedStore === store.id || expandedStore === null;
-
-              return (
-                <div key={store.id} className="space-y-2">
-                  <button
-                    onClick={() =>
-                      setExpandedStore(expandedStore === store.id ? null : store.id)
-                    }
-                    className="w-full flex items-center gap-2.5 py-2"
-                  >
-                    <div className={`h-8 w-8 rounded-lg ${store.colorClass} flex items-center justify-center`}>
-                      <Store className="h-4 w-4 text-white" />
-                    </div>
-                    <span className="font-display font-bold text-sm text-foreground flex-1 text-left">
-                      {store.name}
-                    </span>
+            return (
+              <div key={store.id} className="rounded-2xl border border-border overflow-hidden bg-card">
+                {/* Store header */}
+                <button
+                  onClick={() => toggleStore(store.id)}
+                  className="w-full flex items-center gap-3 p-3.5 hover:bg-muted/50 transition-colors"
+                >
+                  <div className={`h-9 w-9 rounded-xl ${store.colorClass} flex items-center justify-center`}>
+                    <Store className="h-4.5 w-4.5 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="font-display font-bold text-sm text-foreground">{store.name}</span>
+                    <p className="text-[10px] text-muted-foreground">
+                      {storeProducts.length} favorite{storeProducts.length !== 1 ? "s" : ""}
+                      {categoryCount > 0 && ` · ${categoryCount} categor${categoryCount !== 1 ? "ies" : "y"}`}
+                    </p>
+                  </div>
+                  {storeProducts.length > 0 && (
                     <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                       {storeProducts.length}
                     </span>
-                    <ChevronRight
-                      className={`h-4 w-4 text-muted-foreground transition-transform ${
-                        isExpanded ? "rotate-90" : ""
-                      }`}
-                    />
-                  </button>
-
-                  {isExpanded && (
-                    <div className="space-y-1.5 pl-2">
-                      {storeProducts.map((product, i) => (
-                        <FavoriteStoreCard
-                          key={product.id}
-                          product={product}
-                          storeId={store.id}
-                          index={i}
-                          onRemove={() => toggleFavorite(product.id)}
-                          getProductName={getProductName}
-                        />
-                      ))}
-                    </div>
                   )}
-                </div>
-              );
-            })}
-          </>
+                  <ChevronDown
+                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+                      isStoreExpanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Expanded: category subsections */}
+                {isStoreExpanded && storeProducts.length > 0 && (
+                  <div className="border-t border-border">
+                    {Object.entries(categoryGroups)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([category, prods]) => {
+                        const catKey = `${store.id}::${category}`;
+                        const isCatExpanded = expandedCategories.has(catKey);
+
+                        return (
+                          <div key={catKey} className="border-b border-border last:border-b-0">
+                            <button
+                              onClick={() => toggleCategory(catKey)}
+                              className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                            >
+                              <ChevronRight
+                                className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${
+                                  isCatExpanded ? "rotate-90" : ""
+                                }`}
+                              />
+                              <span className="text-xs font-semibold text-foreground flex-1 text-left">
+                                {category}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                                {prods.length}
+                              </span>
+                            </button>
+
+                            {isCatExpanded && (
+                              <div className="px-4 pb-2 space-y-1.5">
+                                {prods.map((product, i) => (
+                                  <FavoriteProductRow
+                                    key={product.id}
+                                    product={product}
+                                    storeId={store.id}
+                                    index={i}
+                                    onRemove={() => toggleFavorite(product.id)}
+                                    getProductName={getProductName}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                    {storeProducts.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">
+                        No favorites available at this store.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {isStoreExpanded && storeProducts.length === 0 && (
+                  <div className="border-t border-border p-4 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      None of your favorites are available here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </main>
 
-      <BottomNav active="favorites" onNavigate={(tab) => {
-        if (tab === "home") navigate("/");
-        else if (tab === "favorites") { /* already here */ }
-        else if (tab === "basket") navigate("/?tab=basket");
-        else if (tab === "settings") navigate("/?tab=settings");
-      }} favoritesCount={favCount} />
+      <BottomNav
+        active="favorites"
+        onNavigate={(tab) => {
+          if (tab === "home") navigate("/");
+          else if (tab === "basket") navigate("/?tab=basket");
+          else if (tab === "settings") navigate("/?tab=settings");
+        }}
+        favoritesCount={favCount}
+      />
     </div>
   );
 };
 
-function FavoriteStoreCard({
+function FavoriteProductRow({
   product,
   storeId,
   index,
@@ -182,19 +215,19 @@ function FavoriteStoreCard({
 
   return (
     <div
-      className="bg-card rounded-xl border border-border p-3 flex items-center gap-3 animate-fade-in-up"
+      className="bg-muted/40 rounded-xl p-2.5 flex items-center gap-2.5 animate-fade-in-up"
       style={{ animationDelay: `${index * 20}ms` }}
     >
-      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-lg shrink-0">
+      <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center text-base shrink-0">
         {product.image}
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="font-display font-semibold text-sm text-card-foreground truncate">
+        <p className="font-display font-semibold text-xs text-card-foreground truncate">
           {getProductName(product)}
         </p>
         {product.brand && (
-          <p className="text-[10px] text-primary/70 font-medium">{product.brand}</p>
+          <p className="text-[9px] text-primary/70 font-medium">{product.brand}</p>
         )}
         <div className="flex items-center gap-1.5 mt-0.5">
           {storePrice && (
@@ -203,13 +236,13 @@ function FavoriteStoreCard({
             </span>
           )}
           {storePrice && lowest.storeId !== storeId && (
-            <span className="flex items-center gap-0.5 text-[10px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-0.5 text-[9px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded-full">
               <TrendingDown className="h-2.5 w-2.5" />
               €{lowest.price.toFixed(2)} at {lowestStore?.name}
             </span>
           )}
           {storePrice?.onSale && (
-            <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-medium">
+            <span className="text-[9px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-medium">
               Sale
             </span>
           )}
@@ -218,7 +251,7 @@ function FavoriteStoreCard({
 
       <button
         onClick={onRemove}
-        className="p-2 rounded-lg hover:bg-destructive/10 transition-colors shrink-0"
+        className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors shrink-0"
       >
         <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
       </button>

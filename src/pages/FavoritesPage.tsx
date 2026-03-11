@@ -1,5 +1,5 @@
-import { Heart, Store, ChevronDown, ChevronRight, Trash2, TrendingDown } from "lucide-react";
-import { useState } from "react";
+import { Heart, Store, ChevronDown, ChevronRight, Trash2, TrendingDown, Search, X } from "lucide-react";
+import { useState, useMemo } from "react";
 import { stores, getLowestPrice, categories, type Product } from "@/data/groceryData";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,8 +16,19 @@ const FavoritesPage = () => {
   const navigate = useNavigate();
   const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const favoriteProducts = products.filter((p) => favoriteIds.has(p.id));
+  const favoriteProducts = useMemo(() => {
+    const favs = products.filter((p) => favoriteIds.has(p.id));
+    if (!searchQuery.trim()) return favs;
+    const q = searchQuery.toLowerCase();
+    return favs.filter(
+      (p) =>
+        getProductName(p).toLowerCase().includes(q) ||
+        p.brand?.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
+    );
+  }, [products, favoriteIds, searchQuery, getProductName]);
 
   const toggleStore = (storeId: string) => {
     setExpandedStores((prev) => {
@@ -66,6 +77,26 @@ const FavoritesPage = () => {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-3">
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search favorites..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-card border border-border rounded-xl py-2.5 pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors"
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+
         {!user ? (
           <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-3">
             <Heart className="h-10 w-10 text-muted-foreground mx-auto" />
@@ -77,7 +108,7 @@ const FavoritesPage = () => {
           <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-3">
             <Heart className="h-10 w-10 text-muted-foreground mx-auto" />
             <p className="text-sm text-muted-foreground">
-              Tap the ♥ on any product to add it here.
+              {searchQuery ? "No favorites match your search." : "Tap the ♥ on any product to add it here."}
             </p>
           </div>
         ) : (

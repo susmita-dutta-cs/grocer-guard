@@ -97,6 +97,7 @@ const FavoritesPage = () => {
           )}
         </div>
 
+        {!user ? (
           <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-3">
             <Heart className="h-10 w-10 text-muted-foreground mx-auto" />
             <p className="text-sm text-muted-foreground">
@@ -107,7 +108,7 @@ const FavoritesPage = () => {
           <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-3">
             <Heart className="h-10 w-10 text-muted-foreground mx-auto" />
             <p className="text-sm text-muted-foreground">
-              Tap the ♥ on any product to add it here.
+              {searchQuery ? "No favorites match your search." : "Tap the ♥ on any product to add it here."}
             </p>
           </div>
         ) : (

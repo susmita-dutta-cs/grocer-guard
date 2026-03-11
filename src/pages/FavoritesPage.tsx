@@ -1,5 +1,5 @@
-import { Heart, Store, ChevronDown, ChevronRight, Trash2, TrendingDown } from "lucide-react";
-import { useState } from "react";
+import { Heart, Store, ChevronDown, ChevronRight, Trash2, TrendingDown, Search, X } from "lucide-react";
+import { useState, useMemo } from "react";
 import { stores, getLowestPrice, categories, type Product } from "@/data/groceryData";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,8 +16,19 @@ const FavoritesPage = () => {
   const navigate = useNavigate();
   const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const favoriteProducts = products.filter((p) => favoriteIds.has(p.id));
+  const favoriteProducts = useMemo(() => {
+    const favs = products.filter((p) => favoriteIds.has(p.id));
+    if (!searchQuery.trim()) return favs;
+    const q = searchQuery.toLowerCase();
+    return favs.filter(
+      (p) =>
+        getProductName(p).toLowerCase().includes(q) ||
+        p.brand?.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
+    );
+  }, [products, favoriteIds, searchQuery, getProductName]);
 
   const toggleStore = (storeId: string) => {
     setExpandedStores((prev) => {

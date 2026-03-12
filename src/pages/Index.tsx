@@ -13,7 +13,7 @@ import SavedDealsBasket from "@/components/SavedDealsBasket";
 import PromotionsSection from "@/components/PromotionsSection";
 import BottomNav from "@/components/BottomNav";
 import SettingsPanel from "@/components/SettingsPanel";
-import FavoritesSection from "@/components/FavoritesSection";
+
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useI18n, categoryKeyMap } from "@/hooks/useI18n";
@@ -197,7 +197,7 @@ const Index = () => {
         {activeTab === "basket" && (
           <div className="space-y-6">
             <SavedDealsBasket />
-            <FavoritesSection favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />
+            
             <SmartBasket basketIds={basketIds} results={smartBasket} onToggle={toggleBasketItem} />
           </div>
         )}

@@ -13,7 +13,7 @@ import SavedDealsBasket from "@/components/SavedDealsBasket";
 import PromotionsSection from "@/components/PromotionsSection";
 import BottomNav from "@/components/BottomNav";
 import SettingsPanel from "@/components/SettingsPanel";
-import FavoritesSection from "@/components/FavoritesSection";
+
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useRecommendations } from "@/hooks/useRecommendations";
 import { useI18n, categoryKeyMap } from "@/hooks/useI18n";

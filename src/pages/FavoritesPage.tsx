@@ -1,5 +1,5 @@
-import { Heart, Store, Search, X, ChevronDown, ChevronRight, TrendingDown } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Heart, Store, Search, X, ChevronRight, TrendingDown } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
 import { stores, getLowestPrice, type Product } from "@/data/groceryData";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +18,8 @@ const FavoritesPage = () => {
   const [selectedStores, setSelectedStores] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const toggleStoreSelection = (storeId: string) => {
     setSelectedStores((prev) => {
@@ -37,20 +39,23 @@ const FavoritesPage = () => {
     });
   };
 
-  // Get products available at a specific store, filtered by search
-  const getStoreProducts = (storeId: string) => {
-    let storeProds = products.filter((p) => p.prices.some((pr) => pr.storeId === storeId));
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      storeProds = storeProds.filter(
+  // Search dropdown results (all products, max 15)
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return products
+      .filter(
         (p) =>
           getProductName(p).toLowerCase().includes(q) ||
           p.brand?.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q)
-      );
-    }
-    return storeProds;
-  };
+      )
+      .slice(0, 15);
+  }, [products, searchQuery, getProductName]);
+
+  // Get products available at a specific store (no search filter — search is dropdown only)
+  const getStoreProducts = (storeId: string) =>
+    products.filter((p) => p.prices.some((pr) => pr.storeId === storeId));
 
   const groupByCategory = (prods: Product[]) => {
     const grouped: Record<string, Product[]> = {};
@@ -79,22 +84,60 @@ const FavoritesPage = () => {
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-3">
         {/* Search bar */}
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative" ref={searchRef}>
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder="Search & add products to favorites..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
             className="w-full bg-card border border-border rounded-xl py-2.5 pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted transition-colors z-10"
             >
               <X className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
+          )}
+
+          {/* Dropdown results */}
+          {searchFocused && searchQuery.trim() && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-50 max-h-72 overflow-y-auto">
+              {searchResults.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No products found</p>
+              ) : (
+                searchResults.map((product) => {
+                  const lowest = getLowestPrice(product);
+                  const lowestStore = stores.find((s) => s.id === lowest.storeId);
+                  const fav = isFavorite(product.id);
+                  return (
+                    <button
+                      key={product.id}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => toggleFavorite(product.id)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-muted/50 transition-colors border-b border-border last:border-b-0"
+                    >
+                      <span className="text-base shrink-0">{product.image}</span>
+                      <div className="flex-1 min-w-0 text-left">
+                        <p className="text-xs font-semibold text-foreground truncate">{getProductName(product)}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {product.category} · from €{lowest.price.toFixed(2)} at {lowestStore?.name}
+                        </p>
+                      </div>
+                      <Heart
+                        className={`h-4 w-4 shrink-0 transition-colors ${
+                          fav ? "text-primary fill-primary" : "text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  );
+                })
+              )}
+            </div>
           )}
         </div>
 

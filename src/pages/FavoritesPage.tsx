@@ -1,6 +1,6 @@
-import { Heart, Store, ChevronDown, ChevronRight, Trash2, TrendingDown, Search, X } from "lucide-react";
+import { Heart, Store, Search, X, ChevronDown, ChevronRight, TrendingDown } from "lucide-react";
 import { useState, useMemo } from "react";
-import { stores, getLowestPrice, categories, type Product } from "@/data/groceryData";
+import { stores, getLowestPrice, type Product } from "@/data/groceryData";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useAuth } from "@/hooks/useAuth";
 import { useProductName } from "@/hooks/useProductName";
@@ -12,26 +12,15 @@ const FavoritesPage = () => {
   const { user } = useAuth();
   const { products } = useGroceryData();
   const { getProductName } = useProductName();
-  const { favoriteIds, toggleFavorite, count: favCount } = useFavorites();
+  const { favoriteIds, isFavorite, toggleFavorite, count: favCount } = useFavorites();
   const navigate = useNavigate();
-  const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set());
+
+  const [selectedStores, setSelectedStores] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
 
-  const favoriteProducts = useMemo(() => {
-    const favs = products.filter((p) => favoriteIds.has(p.id));
-    if (!searchQuery.trim()) return favs;
-    const q = searchQuery.toLowerCase();
-    return favs.filter(
-      (p) =>
-        getProductName(p).toLowerCase().includes(q) ||
-        p.brand?.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
-    );
-  }, [products, favoriteIds, searchQuery, getProductName]);
-
-  const toggleStore = (storeId: string) => {
-    setExpandedStores((prev) => {
+  const toggleStoreSelection = (storeId: string) => {
+    setSelectedStores((prev) => {
       const next = new Set(prev);
       if (next.has(storeId)) next.delete(storeId);
       else next.add(storeId);
@@ -48,11 +37,21 @@ const FavoritesPage = () => {
     });
   };
 
-  // For each store, get favorites that have a price at that store
-  const getStoreProducts = (storeId: string) =>
-    favoriteProducts.filter((p) => p.prices.some((pr) => pr.storeId === storeId));
+  // Get products available at a specific store, filtered by search
+  const getStoreProducts = (storeId: string) => {
+    let storeProds = products.filter((p) => p.prices.some((pr) => pr.storeId === storeId));
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      storeProds = storeProds.filter(
+        (p) =>
+          getProductName(p).toLowerCase().includes(q) ||
+          p.brand?.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+      );
+    }
+    return storeProds;
+  };
 
-  // Group products by category
   const groupByCategory = (prods: Product[]) => {
     const grouped: Record<string, Product[]> = {};
     for (const p of prods) {
@@ -71,7 +70,9 @@ const FavoritesPage = () => {
           </div>
           <div className="flex-1">
             <h1 className="font-display font-bold text-base text-foreground">My Favorites</h1>
-            <p className="text-[10px] text-muted-foreground">{favCount} products saved</p>
+            <p className="text-[10px] text-muted-foreground">
+              {favCount} saved · {selectedStores.size} store{selectedStores.size !== 1 ? "s" : ""} selected
+            </p>
           </div>
         </div>
       </header>
@@ -82,7 +83,7 @@ const FavoritesPage = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search favorites..."
+            placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-card border border-border rounded-xl py-2.5 pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
@@ -97,121 +98,139 @@ const FavoritesPage = () => {
           )}
         </div>
 
-        {!user ? (
-          <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-3">
-            <Heart className="h-10 w-10 text-muted-foreground mx-auto" />
+        {/* Store selection chips */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select stores to browse</p>
+          <div className="flex flex-wrap gap-2">
+            {stores.map((store) => {
+              const isSelected = selectedStores.has(store.id);
+              const productCount = products.filter((p) => p.prices.some((pr) => pr.storeId === store.id)).length;
+              return (
+                <button
+                  key={store.id}
+                  onClick={() => toggleStoreSelection(store.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                    isSelected
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-card text-foreground border-border hover:border-primary/40"
+                  }`}
+                >
+                  <Store className="h-3.5 w-3.5" />
+                  {store.name}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {productCount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {!user && (
+          <div className="bg-card rounded-2xl border border-border p-6 text-center space-y-2">
+            <Heart className="h-8 w-8 text-muted-foreground mx-auto" />
             <p className="text-sm text-muted-foreground">
-              Sign in to save your favorite products and track prices by store.
+              Sign in to save favorites across stores.
             </p>
           </div>
-        ) : favoriteProducts.length === 0 ? (
+        )}
+
+        {selectedStores.size === 0 && (
           <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-3">
-            <Heart className="h-10 w-10 text-muted-foreground mx-auto" />
+            <Store className="h-10 w-10 text-muted-foreground mx-auto" />
             <p className="text-sm text-muted-foreground">
-              {searchQuery ? "No favorites match your search." : "Tap the ♥ on any product to add it here."}
+              Select one or more stores above to browse and save products.
             </p>
           </div>
-        ) : (
-          stores.map((store) => {
+        )}
+
+        {/* Store sections */}
+        {stores
+          .filter((s) => selectedStores.has(s.id))
+          .map((store) => {
             const storeProducts = getStoreProducts(store.id);
-            const isStoreExpanded = expandedStores.has(store.id);
             const categoryGroups = groupByCategory(storeProducts);
-            const categoryCount = Object.keys(categoryGroups).length;
+            const favCountInStore = storeProducts.filter((p) => isFavorite(p.id)).length;
 
             return (
               <div key={store.id} className="rounded-2xl border border-border overflow-hidden bg-card">
                 {/* Store header */}
-                <button
-                  onClick={() => toggleStore(store.id)}
-                  className="w-full flex items-center gap-3 p-3.5 hover:bg-muted/50 transition-colors"
-                >
+                <div className="flex items-center gap-3 p-3.5 border-b border-border">
                   <div className={`h-9 w-9 rounded-xl ${store.colorClass} flex items-center justify-center`}>
-                    <Store className="h-4.5 w-4.5 text-white" />
+                    <Store className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 text-left">
+                  <div className="flex-1">
                     <span className="font-display font-bold text-sm text-foreground">{store.name}</span>
                     <p className="text-[10px] text-muted-foreground">
-                      {storeProducts.length} favorite{storeProducts.length !== 1 ? "s" : ""}
-                      {categoryCount > 0 && ` · ${categoryCount} categor${categoryCount !== 1 ? "ies" : "y"}`}
+                      {storeProducts.length} product{storeProducts.length !== 1 ? "s" : ""}
+                      {favCountInStore > 0 && ` · ${favCountInStore} ♥`}
                     </p>
                   </div>
-                  {storeProducts.length > 0 && (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                      {storeProducts.length}
-                    </span>
-                  )}
-                  <ChevronDown
-                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                      isStoreExpanded ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+                </div>
 
-                {/* Expanded: category subsections */}
-                {isStoreExpanded && storeProducts.length > 0 && (
-                  <div className="border-t border-border">
-                    {Object.entries(categoryGroups)
-                      .sort(([a], [b]) => a.localeCompare(b))
-                      .map(([category, prods]) => {
-                        const catKey = `${store.id}::${category}`;
-                        const isCatExpanded = expandedCategories.has(catKey);
+                {/* Category subsections */}
+                <div>
+                  {Object.entries(categoryGroups)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([category, prods]) => {
+                      const catKey = `${store.id}::${category}`;
+                      const isCatExpanded = expandedCategories.has(catKey);
+                      const favInCat = prods.filter((p) => isFavorite(p.id)).length;
 
-                        return (
-                          <div key={catKey} className="border-b border-border last:border-b-0">
-                            <button
-                              onClick={() => toggleCategory(catKey)}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/30 transition-colors"
-                            >
-                              <ChevronRight
-                                className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${
-                                  isCatExpanded ? "rotate-90" : ""
-                                }`}
-                              />
-                              <span className="text-xs font-semibold text-foreground flex-1 text-left">
-                                {category}
+                      return (
+                        <div key={catKey} className="border-b border-border last:border-b-0">
+                          <button
+                            onClick={() => toggleCategory(catKey)}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                          >
+                            <ChevronRight
+                              className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${
+                                isCatExpanded ? "rotate-90" : ""
+                              }`}
+                            />
+                            <span className="text-xs font-semibold text-foreground flex-1 text-left">
+                              {category}
+                            </span>
+                            {favInCat > 0 && (
+                              <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                                {favInCat} ♥
                               </span>
-                              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
-                                {prods.length}
-                              </span>
-                            </button>
-
-                            {isCatExpanded && (
-                              <div className="px-4 pb-2 space-y-1.5">
-                                {prods.map((product, i) => (
-                                  <FavoriteProductRow
-                                    key={product.id}
-                                    product={product}
-                                    storeId={store.id}
-                                    index={i}
-                                    onRemove={() => toggleFavorite(product.id)}
-                                    getProductName={getProductName}
-                                  />
-                                ))}
-                              </div>
                             )}
-                          </div>
-                        );
-                      })}
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+                              {prods.length}
+                            </span>
+                          </button>
 
-                    {storeProducts.length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">
-                        No favorites available at this store.
-                      </p>
-                    )}
-                  </div>
-                )}
+                          {isCatExpanded && (
+                            <div className="px-4 pb-2 space-y-1.5">
+                              {prods.map((product, i) => (
+                                <BrowseProductRow
+                                  key={product.id}
+                                  product={product}
+                                  storeId={store.id}
+                                  index={i}
+                                  isFav={isFavorite(product.id)}
+                                  onToggleFavorite={() => toggleFavorite(product.id)}
+                                  getProductName={getProductName}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
-                {isStoreExpanded && storeProducts.length === 0 && (
-                  <div className="border-t border-border p-4 text-center">
-                    <p className="text-xs text-muted-foreground">
-                      None of your favorites are available here.
+                  {storeProducts.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      {searchQuery ? "No products match your search." : "No products available."}
                     </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             );
-          })
-        )}
+          })}
       </main>
 
       <BottomNav
@@ -227,17 +246,19 @@ const FavoritesPage = () => {
   );
 };
 
-function FavoriteProductRow({
+function BrowseProductRow({
   product,
   storeId,
   index,
-  onRemove,
+  isFav,
+  onToggleFavorite,
   getProductName,
 }: {
   product: Product;
   storeId: string;
   index: number;
-  onRemove: () => void;
+  isFav: boolean;
+  onToggleFavorite: () => void;
   getProductName: (p: Product) => string;
 }) {
   const storePrice = product.prices.find((p) => p.storeId === storeId);
@@ -246,8 +267,10 @@ function FavoriteProductRow({
 
   return (
     <div
-      className="bg-muted/40 rounded-xl p-2.5 flex items-center gap-2.5 animate-fade-in-up"
-      style={{ animationDelay: `${index * 20}ms` }}
+      className={`rounded-xl p-2.5 flex items-center gap-2.5 animate-fade-in-up transition-colors ${
+        isFav ? "bg-primary/5 border border-primary/20" : "bg-muted/40"
+      }`}
+      style={{ animationDelay: `${index * 15}ms` }}
     >
       <div className="h-9 w-9 rounded-lg bg-background flex items-center justify-center text-base shrink-0">
         {product.image}
@@ -281,10 +304,18 @@ function FavoriteProductRow({
       </div>
 
       <button
-        onClick={onRemove}
-        className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors shrink-0"
+        onClick={onToggleFavorite}
+        className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+          isFav
+            ? "bg-primary/15 hover:bg-primary/25"
+            : "hover:bg-muted"
+        }`}
       >
-        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+        <Heart
+          className={`h-4 w-4 transition-colors ${
+            isFav ? "text-primary fill-primary" : "text-muted-foreground"
+          }`}
+        />
       </button>
     </div>
   );

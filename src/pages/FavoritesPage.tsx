@@ -18,6 +18,8 @@ const FavoritesPage = () => {
   const [selectedStores, setSelectedStores] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const toggleStoreSelection = (storeId: string) => {
     setSelectedStores((prev) => {
@@ -37,20 +39,23 @@ const FavoritesPage = () => {
     });
   };
 
-  // Get products available at a specific store, filtered by search
-  const getStoreProducts = (storeId: string) => {
-    let storeProds = products.filter((p) => p.prices.some((pr) => pr.storeId === storeId));
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      storeProds = storeProds.filter(
+  // Search dropdown results (all products, max 15)
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return products
+      .filter(
         (p) =>
           getProductName(p).toLowerCase().includes(q) ||
           p.brand?.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q)
-      );
-    }
-    return storeProds;
-  };
+      )
+      .slice(0, 15);
+  }, [products, searchQuery, getProductName]);
+
+  // Get products available at a specific store (no search filter — search is dropdown only)
+  const getStoreProducts = (storeId: string) =>
+    products.filter((p) => p.prices.some((pr) => pr.storeId === storeId));
 
   const groupByCategory = (prods: Product[]) => {
     const grouped: Record<string, Product[]> = {};

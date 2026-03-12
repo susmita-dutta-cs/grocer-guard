@@ -1,5 +1,5 @@
-import { Heart, Store, Search, X, ChevronDown, ChevronRight, TrendingDown } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Heart, Store, Search, X, ChevronRight, TrendingDown } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
 import { stores, getLowestPrice, type Product } from "@/data/groceryData";
 import { useGroceryData } from "@/hooks/useGroceryData";
 import { useAuth } from "@/hooks/useAuth";

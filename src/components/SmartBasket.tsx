@@ -1,27 +1,11 @@
 import { useState, useMemo } from "react";
 import type { SmartBasketResult } from "@/hooks/useRecommendations";
 import { useGroceryData } from "@/hooks/useGroceryData";
-import { ShoppingCart, Check, Plus, ChevronDown, ChevronUp, Search, X } from "lucide-react";
+import { categories } from "@/data/groceryData";
+import { ShoppingCart, Check, Plus, ChevronDown, ChevronUp, Search, X, Filter } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 import { useProductName } from "@/hooks/useProductName";
-
-const storeColorMap: Record<string, string> = {
-  aldi: "bg-store-1",
-  albert_heijn: "bg-store-2",
-  carrefour: "bg-store-3",
-  colruyt: "bg-store-4",
-  jumbo: "bg-store-5",
-  lidl: "bg-store-6",
-};
-
-const storeHomeBrands: Record<string, string[]> = {
-  aldi: ["Aldi", "Lyttos", "Moser Roth", "Specially Selected", "Casa Morando", "Mamia", "Lacura", "Brooklea"],
-  albert_heijn: ["AH", "Albert Heijn", "AH Basic", "AH Excellent", "AH Terra"],
-  carrefour: ["Carrefour", "Carrefour Bio", "Carrefour Classic", "Carrefour Extra", "Carrefour Original", "Simpl", "Carrefour Discount"],
-  colruyt: ["Boni", "Boni Selection", "Everyday", "Spar"],
-  jumbo: ["Jumbo", "Jumbo Biologisch"],
-  lidl: ["Lidl", "Milbona", "Cien", "Deluxe", "Silvercrest", "Perlenbacher", "Freeway", "Solevita"],
-};
+import SmartBasketResults from "@/components/SmartBasketResults";
 
 interface SmartBasketProps {
   basketIds: string[];
@@ -33,25 +17,44 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
   const { t } = useI18n();
   const { products } = useGroceryData();
   const { getProductName } = useProductName();
-  const [expandedStore, setExpandedStore] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [showBrandFilter, setShowBrandFilter] = useState(false);
   const [search, setSearch] = useState("");
 
-  const toggleExpand = (storeId: string) => {
-    setExpandedStore((prev) => (prev === storeId ? null : storeId));
-  };
+  // Get unique brands for the selected category
+  const availableBrands = useMemo(() => {
+    const catProducts = selectedCategory === "All"
+      ? products
+      : products.filter((p) => p.category === selectedCategory);
+    const brands = new Set<string>();
+    catProducts.forEach((p) => {
+      if (p.brand) brands.add(p.brand);
+    });
+    return Array.from(brands).sort();
+  }, [products, selectedCategory]);
 
-  const searchResults = useMemo(() => {
-    if (!search.trim()) return [];
-    const q = search.toLowerCase();
-    return products
-      .filter((p) => {
+  // Filtered products by category + brand + search
+  const filteredProducts = useMemo(() => {
+    let list = products;
+    if (selectedCategory !== "All") {
+      list = list.filter((p) => p.category === selectedCategory);
+    }
+    if (selectedBrand) {
+      list = list.filter((p) => p.brand === selectedBrand);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((p) => {
         const name = getProductName(p).toLowerCase();
         return name.includes(q) || p.name.toLowerCase().includes(q) || (p.brand && p.brand.toLowerCase().includes(q));
-      })
-      .slice(0, 8);
-  }, [search, products, getProductName]);
+      });
+    }
+    return list.slice(0, 30);
+  }, [products, selectedCategory, selectedBrand, search, getProductName]);
 
   const basketProducts = products.filter((p) => basketIds.includes(p.id));
+  const displayCategories = categories.filter((c) => c !== "All");
 
   return (
     <div className="space-y-4">
@@ -78,35 +81,106 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
         )}
       </div>
 
-      {/* Search results dropdown */}
-      {search.trim() && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-          {searchResults.length === 0 ? (
-            <p className="text-xs text-muted-foreground p-3 text-center">No products found</p>
-          ) : (
-            searchResults.map((p) => {
-              const inBasket = basketIds.includes(p.id);
-              return (
+      {/* Category chips */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+        <button
+          onClick={() => { setSelectedCategory("All"); setSelectedBrand(null); }}
+          className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+            selectedCategory === "All"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-card text-muted-foreground border border-border hover:border-primary/30"
+          }`}
+        >
+          All
+        </button>
+        {displayCategories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => { setSelectedCategory(cat); setSelectedBrand(null); }}
+            className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+              selectedCategory === cat
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-card text-muted-foreground border border-border hover:border-primary/30"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Brand filter toggle + dropdown */}
+      {availableBrands.length > 0 && (
+        <div className="space-y-1.5">
+          <button
+            onClick={() => setShowBrandFilter(!showBrandFilter)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+              selectedBrand
+                ? "bg-primary/15 text-primary border border-primary/30"
+                : "bg-card text-muted-foreground border border-border hover:border-primary/30"
+            }`}
+          >
+            <Filter className="h-3 w-3" />
+            {selectedBrand || "Brand"}
+            {showBrandFilter ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
+          {showBrandFilter && (
+            <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto rounded-xl border border-border bg-card p-2">
+              <button
+                onClick={() => { setSelectedBrand(null); setShowBrandFilter(false); }}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${
+                  !selectedBrand ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All Brands
+              </button>
+              {availableBrands.map((brand) => (
                 <button
-                  key={p.id}
-                  onClick={() => { onToggle(p.id); setSearch(""); }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-border/50 last:border-b-0 hover:bg-muted/50 transition-colors"
+                  key={brand}
+                  onClick={() => { setSelectedBrand(brand); setShowBrandFilter(false); }}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${
+                    selectedBrand === brand ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <span className="text-lg">{p.image}</span>
-                  <span className="flex-1 text-xs font-medium text-foreground truncate">{getProductName(p)}</span>
-                  {inBasket ? (
-                    <Check className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  {brand}
                 </button>
-              );
-            })
+              ))}
+            </div>
           )}
         </div>
       )}
 
-      {/* Selected items */}
+      {/* Product list */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {filteredProducts.length === 0 ? (
+          <p className="text-xs text-muted-foreground p-3 text-center">No products found</p>
+        ) : (
+          filteredProducts.map((p) => {
+            const inBasket = basketIds.includes(p.id);
+            return (
+              <button
+                key={p.id}
+                onClick={() => onToggle(p.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left border-b border-border/50 last:border-b-0 transition-colors ${
+                  inBasket ? "bg-primary/5" : "hover:bg-muted/50"
+                }`}
+              >
+                <span className="text-lg">{p.image}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium text-foreground truncate block">{getProductName(p)}</span>
+                  {p.brand && <span className="text-[10px] text-muted-foreground">{p.brand}</span>}
+                </div>
+                {inBasket ? (
+                  <Check className="h-4 w-4 text-primary shrink-0" />
+                ) : (
+                  <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+                )}
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* Selected items chips */}
       {basketProducts.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {basketProducts.map((p) => (
@@ -123,86 +197,8 @@ const SmartBasket = ({ basketIds, results, onToggle }: SmartBasketProps) => {
         </div>
       )}
 
-      {results.length > 0 && (
-        <div className="space-y-2 pt-3 border-t border-border">
-          <p className="text-xs font-medium text-muted-foreground">
-            {t("basket.totalFor")} {results[0].itemCount} {t("basket.items")}:
-          </p>
-          {results.map((r, i) => {
-            const isFirst = i === 0;
-            const isExpanded = expandedStore === r.storeId;
-            return (
-              <div key={r.storeId} className="space-y-0">
-                <button
-                  onClick={() => toggleExpand(r.storeId)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                    isFirst ? "bg-primary/10 border border-primary/20" : "bg-card border border-border"
-                  } ${isExpanded ? "rounded-b-none" : ""}`}
-                >
-                  <div className={`h-3 w-3 rounded-full ${storeColorMap[r.storeId]}`} />
-                  <span className={`flex-1 text-left text-sm font-medium ${isFirst ? "text-foreground" : "text-muted-foreground"}`}>
-                    {r.storeName}
-                  </span>
-                  <span className={`text-sm font-display font-bold ${isFirst ? "text-primary" : "text-muted-foreground"}`}>
-                    €{r.totalCost.toFixed(2)}
-                  </span>
-                  {isFirst && r.savings > 0 && (
-                    <span className="text-[9px] font-bold bg-primary/15 text-primary px-2 py-0.5 rounded-full">
-                      {t("basket.save")} €{r.savings.toFixed(2)}
-                    </span>
-                  )}
-                  {isExpanded ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-
-                {isExpanded && (
-                  <div className={`border border-t-0 rounded-b-xl overflow-hidden ${
-                    isFirst ? "border-primary/20" : "border-border"
-                  }`}>
-                    {r.items.map((item) => {
-                      const homeBrands = storeHomeBrands[r.storeId] || [];
-                      const isHomeBrand = item.brand && homeBrands.some(
-                        (hb) => item.brand!.toLowerCase().includes(hb.toLowerCase())
-                      );
-                      return (
-                        <div
-                          key={item.productId}
-                          className="flex items-center gap-3 px-4 py-2.5 border-t border-border/50 bg-card/50"
-                        >
-                          <span className="text-lg">{item.image}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">
-                              {item.productName}
-                            </p>
-                            <div className="flex items-center gap-1.5">
-                              {item.brand && (
-                                <p className="text-[10px] text-primary/70 font-medium">{item.brand}</p>
-                              )}
-                              {isHomeBrand && (
-                                <span className="text-[8px] font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">
-                                  Home Brand
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <span className={`text-xs font-display font-bold ${
-                            item.available ? "text-foreground" : "text-muted-foreground"
-                          }`}>
-                            {item.available ? `€${item.price.toFixed(2)}` : "N/A"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* Store comparison results */}
+      <SmartBasketResults results={results} />
     </div>
   );
 };

@@ -400,6 +400,29 @@ const AdminPanel = () => {
           )}
         </div>
 
+        {/* Scrape Missing Prices Section */}
+        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-primary" />
+            Scrape Missing Prices
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Only scrape products that don't have a price yet for a specific store. Fills gaps in coverage.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {stores.map((store) => (
+              <button
+                key={store.id}
+                onClick={() => startScrape(store.id, true)}
+                disabled={isRunning}
+                className="text-[11px] px-3 py-1.5 rounded-lg border border-border bg-card text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/30 disabled:opacity-40 transition-all"
+              >
+                🔍 {store.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Folder Scraping Section */}
         <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
           <div className="flex items-center justify-between">

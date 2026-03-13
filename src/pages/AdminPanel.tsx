@@ -157,7 +157,7 @@ const AdminPanel = () => {
     toast.success(`${count} price(s) updated successfully`);
   };
 
-  const startScrape = async (storeId?: string) => {
+  const startScrape = async (storeId?: string, missingOnly = false) => {
     setScrapeProgress({
       status: "running",
       storeId: storeId || null,
@@ -175,7 +175,7 @@ const AdminPanel = () => {
     try {
       while (true) {
         const { data, error } = await supabase.functions.invoke("scrape-prices", {
-          body: { store_id: storeId || undefined, offset },
+          body: { store_id: storeId || undefined, offset, missing_only: missingOnly },
         });
 
         if (error) {

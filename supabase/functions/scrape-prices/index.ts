@@ -7,15 +7,16 @@ const corsHeaders = {
 };
 
 const STORES = [
-  { id: "aldi", name: "Aldi", searchSuffix: "site:aldi.be OR aldi prix prijs" },
-  { id: "albert_heijn", name: "Albert Heijn", searchSuffix: "site:ah.nl OR albert heijn prijs" },
-  { id: "carrefour", name: "Carrefour", searchSuffix: "site:carrefour.be OR carrefour prix" },
-  { id: "colruyt", name: "Colruyt", searchSuffix: "site:colruyt.be OR colruyt prix prijs" },
-  { id: "jumbo", name: "Jumbo", searchSuffix: "site:jumbo.com OR jumbo prijs" },
-  { id: "lidl", name: "Lidl", searchSuffix: "site:lidl.be OR lidl prix prijs" },
+  { id: "aldi", name: "Aldi", searchSuffix: "site:aldi.be OR aldi prix prijs", lang: "nl", country: "BE" },
+  { id: "albert_heijn", name: "Albert Heijn", searchSuffix: "site:ah.be OR site:ah.nl albert heijn prijs", lang: "nl", country: "BE" },
+  { id: "carrefour", name: "Carrefour", searchSuffix: "site:carrefour.be OR carrefour prix prijs", lang: "fr", country: "BE" },
+  { id: "colruyt", name: "Colruyt", searchSuffix: "site:colruyt.be OR colruyt prix prijs", lang: "nl", country: "BE" },
+  { id: "jumbo", name: "Jumbo", searchSuffix: "site:jumbo.com OR jumbo prijs", lang: "nl", country: "NL" },
+  { id: "lidl", name: "Lidl", searchSuffix: "site:lidl.be OR lidl prix prijs", lang: "nl", country: "BE" },
+  { id: "delhaize", name: "Delhaize", searchSuffix: "site:delhaize.be OR delhaize prix prijs", lang: "fr", country: "BE" },
 ];
 
-const BATCH_SIZE = 15; // Products per invocation to stay within timeout
+const BATCH_SIZE = 20; // Products per invocation
 
 function extractPrice(text: string): number | null {
   const priceRegex = /€\s?(\d{1,3}(?:[.,]\d{2})?)|(\d{1,3}(?:[.,]\d{2})?)\s?€/g;
@@ -59,11 +60,13 @@ Deno.serve(async (req) => {
     // Parse request params
     let storeId: string | null = null;
     let offset = 0;
+    let missingOnly = false;
 
     try {
       const body = await req.json();
       storeId = body.store_id || null;
       offset = body.offset || 0;
+      missingOnly = body.missing_only || false;
     } catch {
       // No body = scrape all stores from offset 0
     }
@@ -73,18 +76,51 @@ Deno.serve(async (req) => {
       : STORES;
 
     // Fetch products from DB
-    const { data: dbProducts, error: prodErr } = await supabase
-      .from("products")
-      .select("id, name")
-      .order("name")
-      .range(offset, offset + BATCH_SIZE - 1);
+    let dbProducts: any[];
 
-    if (prodErr || !dbProducts || dbProducts.length === 0) {
+    if (missingOnly && storeId) {
+      // Only fetch products that DON'T have a price for this store
+      const { data: allProducts } = await supabase
+        .from("products")
+        .select("id, name, name_nl, name_fr")
+        .order("name");
+
+      const { data: existingPrices } = await supabase
+        .from("product_prices")
+        .select("product_id")
+        .eq("store_id", storeId);
+
+      const existingIds = new Set((existingPrices || []).map((p: any) => p.product_id));
+      const missing = (allProducts || []).filter((p: any) => !existingIds.has(p.id));
+      dbProducts = missing.slice(offset, offset + BATCH_SIZE);
+      console.log(`Missing-only mode: ${missing.length} products without prices at ${storeId}, processing ${dbProducts.length} from offset ${offset}`);
+    } else {
+      const { data, error: prodErr } = await supabase
+        .from("products")
+        .select("id, name, name_nl, name_fr")
+        .order("name")
+        .range(offset, offset + BATCH_SIZE - 1);
+
+      if (prodErr || !data || data.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            done: true,
+            message: "No more products to scrape",
+            offset,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      dbProducts = data;
+    }
+
+    if (dbProducts.length === 0) {
       return new Response(
         JSON.stringify({
           success: true,
           done: true,
-          message: "No more products to scrape",
+          message: missingOnly ? "All products have prices for this store" : "No more products to scrape",
           offset,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -107,7 +143,17 @@ Deno.serve(async (req) => {
     for (const product of dbProducts) {
       for (const store of storesToScrape) {
         try {
-          const query = `${product.name} ${store.searchSuffix}`;
+          // Build a rich search query using localized names
+          const names = [product.name];
+          if (product.name_nl) names.push(product.name_nl);
+          if (product.name_fr) names.push(product.name_fr);
+          
+          // Use the best name for the store's language
+          let searchName = product.name;
+          if (store.lang === "nl" && product.name_nl) searchName = product.name_nl;
+          if (store.lang === "fr" && product.name_fr) searchName = product.name_fr;
+
+          const query = `${searchName} ${store.searchSuffix}`;
           console.log(`Searching: ${query}`);
 
           const response = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -118,9 +164,9 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               query,
-              limit: 3,
-              lang: "nl",
-              country: "BE",
+              limit: 5,
+              lang: store.lang,
+              country: store.country,
               scrapeOptions: { formats: ["markdown"] },
             }),
           });
@@ -152,6 +198,43 @@ Deno.serve(async (req) => {
             }
           }
 
+          // If no price found with localized name, try English name as fallback
+          if (foundPrice === null && searchName !== product.name) {
+            const fallbackQuery = `${product.name} ${store.searchSuffix}`;
+            console.log(`Fallback search: ${fallbackQuery}`);
+
+            const fbResponse = await fetch("https://api.firecrawl.dev/v1/search", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${firecrawlKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                query: fallbackQuery,
+                limit: 3,
+                lang: store.lang,
+                country: store.country,
+                scrapeOptions: { formats: ["markdown"] },
+              }),
+            });
+
+            const fbData = await fbResponse.json();
+            if (fbResponse.ok) {
+              const fbResults = fbData.data || [];
+              for (const result of fbResults) {
+                const text = `${result.title || ""} ${result.description || ""} ${result.markdown || ""}`;
+                const price = extractPrice(text);
+                if (price !== null) {
+                  foundPrice = price;
+                  sourceUrl = result.url || "";
+                  onSale = detectSale(text);
+                  break;
+                }
+              }
+            }
+            await new Promise((r) => setTimeout(r, 200));
+          }
+
           if (foundPrice !== null) {
             await supabase.from("product_prices").upsert(
               {
@@ -169,7 +252,7 @@ Deno.serve(async (req) => {
           }
 
           // Rate limit delay
-          await new Promise((r) => setTimeout(r, 300));
+          await new Promise((r) => setTimeout(r, 250));
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           errors.push(`Error: ${product.name} at ${store.name}: ${msg}`);

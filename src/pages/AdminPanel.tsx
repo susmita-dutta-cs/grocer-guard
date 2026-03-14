@@ -470,6 +470,52 @@ const AdminPanel = () => {
           </div>
         </div>
 
+        {/* Seed Products Section */}
+        <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-semibold text-foreground flex items-center gap-2">
+              <Database className={`h-4 w-4 text-primary ${isSeeding ? "animate-pulse" : ""}`} />
+              Expand Product Catalog
+            </h2>
+            <button
+              onClick={startSeedProducts}
+              disabled={isSeeding || isRunning}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold disabled:opacity-40 transition-opacity"
+            >
+              {isSeeding ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Seeding...
+                </>
+              ) : (
+                <>
+                  <Database className="h-3.5 w-3.5" />
+                  Seed to 5000 Products
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Expand your catalog to 5,000 products with realistic prices for all 7 stores. Products are generated across all categories with Belgian brands.
+          </p>
+          {seedProgress.status !== "idle" && (
+            <div className="mt-2 p-3 rounded-xl bg-muted/50 space-y-1">
+              <div className="flex items-center gap-2">
+                {isSeeding && <Loader2 className="h-4 w-4 text-primary animate-spin" />}
+                {seedProgress.status === "done" && <CheckCircle className="h-4 w-4 text-green-500" />}
+                {seedProgress.status === "error" && <AlertCircle className="h-4 w-4 text-destructive" />}
+                <span className="text-xs font-medium text-foreground">
+                  {isSeeding ? `Adding products... ${seedProgress.added} added so far` :
+                   seedProgress.status === "done" ? `Done! ${seedProgress.added} products added` : "Seeding failed"}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Total products: <span className="font-semibold text-foreground">{seedProgress.total}</span>
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Folder Scraping Section */}
         <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
           <div className="flex items-center justify-between">

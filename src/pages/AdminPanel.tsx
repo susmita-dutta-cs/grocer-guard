@@ -290,8 +290,55 @@ const AdminPanel = () => {
     return null;
   }
 
+  const [seedProgress, setSeedProgress] = useState<{ status: ScrapeStatus; added: number; total: number }>({
+    status: "idle", added: 0, total: 0,
+  });
+
+  const startSeedProducts = async () => {
+    setSeedProgress({ status: "running", added: 0, total: 0 });
+    let batch = 0;
+    let totalAdded = 0;
+    let currentTotal = 0;
+
+    try {
+      while (true) {
+        const { data, error } = await supabase.functions.invoke("seed-products", {
+          body: { batch, target: 5000 },
+        });
+
+        if (error) {
+          toast.error(error.message);
+          setSeedProgress(p => ({ ...p, status: "error" }));
+          return;
+        }
+
+        if (!data.success) {
+          toast.error(data.error || "Seed failed");
+          setSeedProgress(p => ({ ...p, status: "error" }));
+          return;
+        }
+
+        totalAdded += data.products_added || 0;
+        currentTotal = data.total || 0;
+        setSeedProgress({ status: "running", added: totalAdded, total: currentTotal });
+
+        if (data.done || data.next_batch === null) break;
+        batch = data.next_batch;
+      }
+
+      setSeedProgress({ status: "done", added: totalAdded, total: currentTotal });
+      toast.success(`Added ${totalAdded} products with prices for all stores. Total: ${currentTotal}`);
+      await fetchData();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Seeding failed";
+      setSeedProgress(p => ({ ...p, status: "error" }));
+      toast.error(msg);
+    }
+  };
+
   const isRunning = scrapeProgress.status === "running";
   const isFolderRunning = folderProgress.status === "running";
+  const isSeeding = seedProgress.status === "running";
 
   return (
     <div className="min-h-screen bg-background">

@@ -293,9 +293,6 @@ const AdminPanel = () => {
     return null;
   }
 
-  const [seedProgress, setSeedProgress] = useState<{ status: ScrapeStatus; added: number; total: number }>({
-    status: "idle", added: 0, total: 0,
-  });
 
   const startSeedProducts = async () => {
     setSeedProgress({ status: "running", added: 0, total: 0 });

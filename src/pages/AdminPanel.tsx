@@ -82,6 +82,9 @@ const AdminPanel = () => {
     results: {},
   });
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [seedProgress, setSeedProgress] = useState<{ status: ScrapeStatus; added: number; total: number }>({
+    status: "idle", added: 0, total: 0,
+  });
 
   const fetchData = async () => {
     const [{ data: prods }, { data: prs }] = await Promise.all([
